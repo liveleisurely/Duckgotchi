@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>말랑오리</title>
+<style>
+  :root{
+    --ink: #16352f;
+    --ink-soft: rgba(22,53,47,0.62);
+    --coral: #ff8a5b;
+    --panel-bg: #fbfdfa;
+    --panel-shadow: rgba(15,40,35,0.28);
+  }
+  html, body{
+    margin: 0; padding: 0; width: 100vw; height: 100vh;
+    overflow: hidden; background: transparent;
+    -webkit-user-select: none; user-select: none;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
+    color: var(--ink);
+  }
+  #three{ position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; display: block; }
+
+  .hit{ pointer-events: auto; }
+
+  #count{
+    position: fixed; top: 14px; left: 14px;
+    font-size: 12px; color: var(--ink-soft);
+    background: rgba(255,255,255,0.75);
+    padding: 6px 11px; border-radius: 999px;
+    box-shadow: 0 2px 8px rgba(15,40,35,0.12);
+  }
+  #xpHud{
+    position: fixed; top: 44px; left: 14px;
+    font-size: 12px; font-weight: 700; color: var(--coral);
+    background: rgba(255,138,91,0.14);
+    padding: 6px 11px; border-radius: 999px; cursor: pointer;
+    box-shadow: 0 2px 8px rgba(15,40,35,0.12);
+    transition: transform 0.15s ease;
+  }
+  #xpHud.bump{ transform: scale(1.18); }
+  #quitBtn{
+    position: fixed; top: 12px; right: 12px;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.75); box-shadow: 0 2px 8px rgba(15,40,35,0.12);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; cursor: pointer;
+  }
+
+  #duckHit{ position: fixed; width: 200px; height: 200px; border-radius: 50%; cursor: grab; }
+  #duckHit.grabbing{ cursor: grabbing; }
+
+  #quack{
+    position: fixed; transform: translate(-50%, 0);
+    background: #fff; color: var(--ink); font-size: 13px; font-weight: 700;
+    padding: 4px 10px; border-radius: 999px; box-shadow: 0 4px 10px rgba(22,64,54,0.18);
+    opacity: 0; pointer-events: none; white-space: nowrap;
+  }
+
+  #chatBubble{
+    position: fixed; width: 296px; box-sizing: border-box;
+    background: var(--panel-bg); border-radius: 18px;
+    box-shadow: 0 14px 34px var(--panel-shadow);
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+    opacity: 0; transform: scale(0.92) translateY(6px);
+    transition: opacity 0.16s ease, transform 0.16s cubic-bezier(.2,.9,.3,1.2);
+    pointer-events: none;
+  }
+  #chatBubble.open{ opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+  #chatBubble::after{
+    content: ""; position: absolute; left: 50%; bottom: -9px; transform: translateX(-50%);
+    border-left: 9px solid transparent; border-right: 9px solid transparent;
+    border-top: 9px solid var(--panel-bg);
+  }
+  #chatBubble.below::after{
+    bottom: auto; top: -9px;
+    border-top: none; border-bottom: 9px solid var(--panel-bg);
+  }
+  #closeBtn{
+    position: absolute; top: 8px; right: 8px;
+    border: none; background: rgba(22,53,47,0.08); color: var(--ink);
+    width: 21px; height: 21px; border-radius: 50%; font-size: 10.5px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  #msgArea{ font-size: 13.5px; line-height: 1.5; padding-right: 20px; min-height: 20px; }
+
+  #problem{
+    border: none; border-top: 1px solid rgba(22,53,47,0.12);
+    padding: 9px 0 0; font-size: 13.5px; font-family: inherit; color: var(--ink);
+    background: transparent; outline: none;
+  }
+
+  /* a separate "thought bubble" (cloud + trailing dots leading back to the
+     duck) for link suggestions, distinct from the main speech bubble */
+  #thoughtBubble{
+    position: fixed; width: 208px; box-sizing: border-box;
+    background: #fff;
+    border-radius: 46% 54% 58% 42% / 55% 48% 55% 42%;
+    box-shadow: 0 10px 26px var(--panel-shadow);
+    padding: 16px 17px 13px; display: flex; flex-direction: column; gap: 6px;
+    opacity: 0; transform: scale(0.8);
+    transition: opacity 0.18s ease, transform 0.18s cubic-bezier(.2,.9,.3,1.2);
+    pointer-events: none;
+  }
+  #thoughtBubble.open{ opacity: 1; transform: scale(1); pointer-events: auto; }
+  #thoughtBubble::before, #thoughtBubble::after{
+    content: ""; position: absolute; background: #fff; border-radius: 50%;
+  }
+  #thoughtBubble::before{ width: 30px; height: 30px; top: -12px; left: 20px; }
+  #thoughtBubble::after{ width: 22px; height: 22px; top: -7px; right: 30px; }
+  #thoughtBubble .tt-label{ font-size: 11px; color: var(--ink-soft); font-weight: 700; }
+  #thoughtBubble a{
+    display: flex; align-items: center; gap: 8px; text-decoration: none;
+    color: var(--ink); background: #f2faf6; border-radius: 10px; padding: 6px 8px;
+  }
+  #thoughtBubble a img{ width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0; background: #fff; }
+  #thoughtBubble a span{ font-size: 12px; font-weight: 600; }
+
+  .thoughtDot{
+    position: fixed; background: #fff; border-radius: 50%;
+    box-shadow: 0 3px 8px rgba(15,40,35,0.12);
+    opacity: 0; transition: opacity 0.15s ease; pointer-events: none;
+  }
+  .thoughtDot.open{ opacity: 1; }
+
+  /* settings — right click the duck. Centered via JS on whichever monitor
+     the duck is currently on (not the whole multi-monitor canvas) */
+  #settingsOverlay{
+    position: fixed; inset: 0; background: rgba(15,40,35,0.32);
+    opacity: 0; transition: opacity 0.2s ease; pointer-events: none;
+  }
+  #settingsOverlay.open{ opacity: 1; pointer-events: auto; }
+  #settingsPanel{
+    position: fixed; left: 50%; top: 50%;
+    width: min(420px, 92vw); background: var(--panel-bg); border-radius: 20px;
+    box-shadow: 0 20px 50px var(--panel-shadow); padding: 18px;
+    box-sizing: border-box; display: flex; flex-direction: column; gap: 12px;
+    transform: translate(-50%, -50%) scale(0.95);
+    transition: transform 0.2s cubic-bezier(.2,.9,.3,1.2);
+  }
+  #settingsOverlay.open #settingsPanel{ transform: translate(-50%, -50%) scale(1); }
+  #settingsHead{ display: flex; align-items: center; justify-content: space-between; }
+  #settingsHead h1{ font-size: 15px; margin: 0; font-weight: 800; }
+  #providerRow{ display: flex; gap: 8px; }
+  .providerBtn{
+    flex: 1; border: 1px solid rgba(22,53,47,0.15); background: #fff; color: var(--ink);
+    border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+  .providerBtn.active{ background: var(--coral); border-color: var(--coral); color: #fff; }
+  .settingsLabel{ font-size: 11.5px; color: var(--ink-soft); }
+
+  #tabRow{ display: flex; gap: 8px; border-bottom: 1px solid rgba(22,53,47,0.1); padding-bottom: 10px; }
+  .tabBtn{
+    border: none; background: transparent; color: var(--ink-soft);
+    font-size: 13px; font-weight: 700; padding: 6px 4px; cursor: pointer;
+    border-bottom: 2px solid transparent;
+  }
+  .tabBtn.active{ color: var(--ink); border-bottom-color: var(--coral); }
+  #xpBadge{
+    font-size: 10.5px; font-weight: 700; color: var(--coral);
+    background: rgba(255,138,91,0.12); border-radius: 999px; padding: 2px 7px; margin-left: 4px;
+  }
+  .tabPane{ display: flex; flex-direction: column; gap: 12px; }
+
+  #partList{
+    display: flex; flex-direction: column; gap: 8px;
+    max-height: 46vh; overflow-y: auto; padding-right: 2px;
+  }
+  .partRow{
+    border: 1px solid rgba(22,53,47,0.1); border-radius: 12px; padding: 9px 10px;
+    display: flex; flex-direction: column; gap: 7px; background: #fff;
+  }
+  .partRowHead{ display: flex; align-items: center; justify-content: space-between; }
+  .partRowHead .pName{ font-size: 12.5px; font-weight: 700; }
+  .partRowHead .pLvl{ font-size: 10.5px; color: var(--ink-soft); }
+  .swatchRow{ display: flex; flex-wrap: wrap; gap: 5px; }
+  .shapeSwatch{
+    width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid rgba(22,53,47,0.15);
+    background: #f4faf7; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;
+  }
+  .shapeSwatch.selected{ border-color: var(--ink); border-width: 2px; }
+  .colorSwatch{
+    width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(22,53,47,0.15); cursor: pointer;
+  }
+  .colorSwatch.selected{ border-color: var(--ink); border-width: 2.5px; }
+  .unlockBtn{
+    align-self: flex-start; border: none; background: rgba(22,53,47,0.08); color: var(--ink);
+    font-size: 11px; font-weight: 700; padding: 6px 10px; border-radius: 999px; cursor: pointer;
+  }
+  .unlockBtn:disabled{ opacity: 0.4; cursor: default; }
+  .unlockBtn.maxed{ background: rgba(255,138,91,0.15); color: var(--coral); }
+  #promptArea{
+    width: 100%; min-height: 130px; resize: vertical; box-sizing: border-box;
+    border: 1px solid rgba(22,53,47,0.15); border-radius: 12px; padding: 10px;
+    font-size: 12.5px; line-height: 1.5; font-family: inherit; color: var(--ink);
+    background: #fff; outline: none;
+  }
+  #promptArea:focus{ border-color: var(--coral); }
+  #settingsBtns{ display: flex; gap: 8px; }
+  #resetPromptBtn{
+    border: none; background: rgba(22,53,47,0.08); color: var(--ink);
+    border-radius: 12px; padding: 10px 13px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  #saveSettingsBtn{
+    flex: 1; border: none; background: var(--ink); color: #fff;
+    border-radius: 12px; padding: 10px 13px; font-size: 13px; font-weight: 700; cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    #chatBubble, #thoughtBubble, #settingsOverlay, #settingsPanel{ transition: none; }
+  }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./node_modules/three/build/three.module.js",
+    "three/addons/": "./node_modules/three/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<canvas id="three"></canvas>
+
+<div id="count" class="hit">오늘 오리한테 0번 상담함</div>
+<div id="xpHud" class="hit" title="우클릭해서 파츠 커스터마이징">✨ 0 XP</div>
+<div id="quitBtn" class="hit" title="오리 재우기 (Ctrl+Shift+Q)">🌙</div>
+<div id="duckHit" class="hit"></div>
+<div id="quack">꽥!</div>
+
+<div id="chatBubble" class="hit">
+  <button id="closeBtn">✕</button>
+  <div id="msgArea">막힌 걸 말해봐.</div>
+  <input id="problem" type="text" placeholder="오리한테 말해봐... (Enter)">
+</div>
+
+<div id="thoughtDot1" class="thoughtDot"></div>
+<div id="thoughtDot2" class="thoughtDot"></div>
+<div id="thoughtDot3" class="thoughtDot"></div>
+<div id="thoughtBubble" class="hit">
+  <div class="tt-label">💭 이런 게 생각나네</div>
+  <div id="thoughtLinks"></div>
+</div>
+
+<div id="settingsOverlay" class="hit">
+  <div id="settingsPanel" class="hit">
+    <div id="settingsHead">
+      <h1 id="settingsTitle">오리 설정</h1>
+      <button id="settingsCloseBtn" class="providerBtn" style="flex:none;width:30px;height:30px;padding:0;border-radius:50%;">✕</button>
+    </div>
+    <div id="tabRow">
+      <button class="tabBtn active" data-tab="settings">설정</button>
+      <button class="tabBtn" data-tab="customize">커스텀 <span id="xpBadge">0 XP</span></button>
+    </div>
+
+    <div id="tabSettings" class="tabPane">
+      <div class="settingsLabel">어떤 AI로 오리와 대화할까</div>
+      <div id="providerRow">
+        <button class="providerBtn" data-provider="claude">Claude</button>
+        <button class="providerBtn" data-provider="codex">Codex</button>
+      </div>
+      <div class="settingsLabel">오리한테 줄 지침 (원하는 목적에 맞게 자유롭게 수정 가능)</div>
+      <textarea id="promptArea"></textarea>
+      <div id="settingsBtns">
+        <button id="resetPromptBtn">기본값으로</button>
+        <button id="saveSettingsBtn">저장하고 닫기</button>
+      </div>
+    </div>
+
+    <div id="tabCustomize" class="tabPane" style="display:none;">
+      <div class="settingsLabel">질문하거나 오리를 더블클릭하면 XP가 쌓여. 원하는 파츠에 자유롭게 투자해서 모양·색을 늘려봐.</div>
+      <div id="partList"></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+
+const REDUCE = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+function rand(a,b){ return a + Math.random() * (b - a); }
+function clamp(v,a,b){ return v < a ? a : (v > b ? b : v); }
+
+// ---------------------------------------------------------------------
+// click-through: window stays non-interactive except over ".hit" elements
+// ---------------------------------------------------------------------
+let lastInteractive = null;
+window.addEventListener("mousemove", (e) => {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const interactive = !!(el && el.closest(".hit"));
+  if (interactive !== lastInteractive){
+    lastInteractive = interactive;
+    window.duckAPI.setIgnoreMouseEvents(!interactive, { forward: true });
+  }
+});
+
+// ---------------------------------------------------------------------
+// three.js: a smooth rubber-duck-toy shape floating over the desktop
+// ---------------------------------------------------------------------
+let W = window.innerWidth, H = window.innerHeight;
+const canvas = document.getElementById("three");
+const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+renderer.setClearColor(0x000000, 0);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(W, H);
+
+const scene = new THREE.Scene();
+const camera = new THREE.OrthographicCamera(0, W, 0, H, -1000, 1000);
+camera.position.z = 500;
+
+scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
+keyLight.position.set(120, -180, 260);
+scene.add(keyLight);
+const fillLight = new THREE.DirectionalLight(0xbcdfff, 0.55);
+fillLight.position.set(-160, 120, 120);
+scene.add(fillLight);
+
+function matte(color){ return new THREE.MeshLambertMaterial({ color, flatShading: false }); }
+
+const SCALE = 1.55;
+const BR = 42 * SCALE;
+const duck = new THREE.Group();
+
+// squashGroup carries every reaction-driven deformation (uniform pulse AND
+// real non-uniform squash/stretch). It's a child of `duck`, so a squash
+// axis is always relative to the duck's OWN body, not the screen — it
+// stays correct no matter what duckYaw currently is, no shearing.
+const squashGroup = new THREE.Group();
+duck.add(squashGroup);
+const partGroup = new THREE.Group();
+squashGroup.add(partGroup);
+
+// ---------------------------------------------------------------------
+// customizable parts: 14 independent slots, each a simple primitive whose
+// shape + color you unlock by leveling up (see the XP/customize system
+// further down). Positions are fixed anchors so parts always "attach" in
+// roughly the right place no matter what shape is plugged into them.
+// ---------------------------------------------------------------------
+const SHAPES = [
+  { id: "sphere", label: "구", make: (s) => new THREE.SphereGeometry(s, 22, 16) },
+  { id: "box", label: "상자", make: (s) => new THREE.BoxGeometry(s * 1.5, s * 1.5, s * 1.5) },
+  { id: "cone", label: "원뿔", make: (s) => new THREE.ConeGeometry(s, s * 1.7, 20) },
+  { id: "cylinder", label: "원통", make: (s) => new THREE.CylinderGeometry(s * 0.82, s * 0.82, s * 1.5, 20) },
+  { id: "octahedron", label: "팔면체", make: (s) => new THREE.OctahedronGeometry(s, 0) },
+  { id: "torus", label: "고리", make: (s) => new THREE.TorusGeometry(s * 0.7, s * 0.28, 10, 20) },
+  { id: "capsule", label: "캡슐", make: (s) => new THREE.CapsuleGeometry(s * 0.58, s * 0.7, 6, 16) }
+];
+const COLORS = [0xffcb3d, 0xff8a5b, 0x6ec6ff, 0x8effa0, 0xff6ec7, 0xc79bff, 0xfff275, 0x4a4a4a];
+const MAX_LEVEL = Math.min(SHAPES.length, COLORS.length) - 1;
+
+// naturalColor is each part's sensible real-world default (eyes are dark,
+// a bill is orange, ...) — always available at "slot 0", regardless of
+// level. Leveling up ADDS alternative colors/shapes on top of this; it
+// never removes or overrides the sensible default. Without this, every
+// part defaulted to the same shared color and the whole duck read as one
+// undifferentiated yellow blob.
+const PARTS = [
+  { id: "head", label: "머리", pos: [0, -BR * 0.86, BR * 0.28], size: BR * 0.5, naturalColor: 0xffcb3d },
+  { id: "body", label: "몸통", pos: [0, 0, 0], size: BR, scale: [1, 0.86, 0.9], naturalColor: 0xffcb3d },
+  { id: "bill", label: "부리", pos: [0, -BR * 0.71, BR * 0.81], size: BR * 0.28, scale: [1.2, 0.45, 0.9], naturalColor: 0xff8a4a },
+  { id: "eyeL", label: "왼쪽 눈", pos: [BR * 0.31, -BR * 1.0, BR * 0.66], size: BR * 0.07, naturalColor: 0x22201c },
+  { id: "eyeR", label: "오른쪽 눈", pos: [-BR * 0.31, -BR * 1.0, BR * 0.66], size: BR * 0.07, naturalColor: 0x22201c },
+  { id: "wingL", label: "왼쪽 날개", pos: [BR * 1.04, BR * 0.05, -BR * 0.02], size: BR * 0.3, scale: [0.42, 1.05, 0.62], naturalColor: 0xe9a52e },
+  { id: "wingR", label: "오른쪽 날개", pos: [-BR * 1.04, BR * 0.05, -BR * 0.02], size: BR * 0.3, scale: [0.42, 1.05, 0.62], naturalColor: 0xe9a52e },
+  { id: "legL", label: "왼쪽 다리", pos: [BR * 0.32, BR * 0.78, BR * 0.1], size: BR * 0.1, scale: [1, 1.6, 1], naturalColor: 0xff8a4a },
+  { id: "legR", label: "오른쪽 다리", pos: [-BR * 0.32, BR * 0.78, BR * 0.1], size: BR * 0.1, scale: [1, 1.6, 1], naturalColor: 0xff8a4a },
+  { id: "footL", label: "왼쪽 발", pos: [BR * 0.34, BR * 0.98, BR * 0.28], size: BR * 0.16, scale: [1, 0.5, 1.3], naturalColor: 0xff8a4a },
+  { id: "footR", label: "오른쪽 발", pos: [-BR * 0.34, BR * 0.98, BR * 0.28], size: BR * 0.16, scale: [1, 0.5, 1.3], naturalColor: 0xff8a4a },
+  { id: "tail", label: "꼬리", pos: [0, -BR * 0.08, -BR * 0.92], size: BR * 0.2, naturalColor: 0xe9a52e },
+  { id: "blush", label: "볼터치", pos: [BR * 0.5, -BR * 0.78, BR * 0.5], size: BR * 0.12, scale: [0.35, 0.7, 0.7], naturalColor: 0xff8f6b, hiddenAtZero: true },
+  { id: "crest", label: "머리 장식", pos: [0, -BR * 1.38, BR * 0.08], size: BR * 0.16, naturalColor: 0xffcb3d, hiddenAtZero: true }
+];
+
+function colorForChoice(def, idx){ return idx === 0 ? def.naturalColor : COLORS[idx - 1]; }
+
+let partState = {};
+try { partState = JSON.parse(localStorage.getItem("duckParts") || "{}"); } catch (e) { partState = {}; }
+function partOf(id){ return partState[id] || (partState[id] = { level: 0, shapeIdx: 0, colorIdx: 0 }); }
+function savePartState(){ localStorage.setItem("duckParts", JSON.stringify(partState)); }
+
+// shared XP pool — earned by asking questions and by double-click reactions,
+// spent (a skill-tree style choice, not auto-applied) on leveling up
+// whichever parts you want. costForLevel(L) = XP needed to reach level L
+// from L-1.
+let totalXP = parseInt(localStorage.getItem("duckXP") || "0", 10);
+function costForLevel(level){ return level * 8; }
+const xpHud = document.getElementById("xpHud");
+xpHud.textContent = "✨ " + totalXP + " XP";
+function addXP(n){
+  totalXP += n;
+  localStorage.setItem("duckXP", String(totalXP));
+  xpHud.textContent = "✨ " + totalXP + " XP";
+  xpHud.classList.add("bump");
+  setTimeout(() => xpHud.classList.remove("bump"), 160);
+  if (typeof refreshCustomizeUI === "function") refreshCustomizeUI();
+}
+xpHud.addEventListener("click", async () => {
+  await openSettings();
+  document.querySelector(".tabBtn[data-tab=customize]").click();
+});
+
+const partMeshes = {};
+function rebuildPart(id){
+  const def = PARTS.find((p) => p.id === id);
+  const st = partOf(id);
+  const old = partMeshes[id];
+  if (old){ partGroup.remove(old); old.geometry.dispose(); old.material.dispose(); partMeshes[id] = null; }
+  // a couple of "bonus" slots (blush, head accessory) stay literally absent
+  // until you unlock them — nothing there, then suddenly something appears,
+  // instead of one existing shape quietly changing
+  if (def.hiddenAtZero && st.level === 0) return;
+  const shape = SHAPES[Math.min(st.shapeIdx, SHAPES.length - 1)];
+  const mesh = new THREE.Mesh(shape.make(def.size), matte(colorForChoice(def, Math.min(st.colorIdx, st.level))));
+  mesh.position.set(def.pos[0], def.pos[1], def.pos[2]);
+  if (def.scale) mesh.scale.set(def.scale[0], def.scale[1], def.scale[2]);
+  partMeshes[id] = mesh;
+  partGroup.add(mesh);
+}
+PARTS.forEach((p) => rebuildPart(p.id));
+
+let duckYaw = -Math.PI / 4; // resting pose: facing the viewer, turned ~45° to their left
+duck.rotation.y = duckYaw;
+scene.add(duck);
+
+function resize(){
+  W = window.innerWidth; H = window.innerHeight;
+  camera.right = W; camera.bottom = H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W, H);
+}
+window.addEventListener("resize", resize);
+
+// ---------------------------------------------------------------------
+// fling-and-settle physics: drag the duck, throw it, it slides + bounces.
+// spans every monitor (see main.js getVirtualBounds), so it can be dragged
+// across a multi-monitor setup instead of stopping at one screen's edge
+// ---------------------------------------------------------------------
+const duckHit = document.getElementById("duckHit");
+const quackEl = document.getElementById("quack");
+const HALF = 100;
+
+let curX = W * 0.82, curY = H * 0.78;
+let velX = 0, velY = 0;
+let dragging = false, dragOffX = 0, dragOffY = 0;
+let downAt = 0, downX = 0, downY = 0;
+let prevX = curX, prevY = curY;
+let bouncePulse = 0;
+function triggerBounce(strength){ bouncePulse = Math.max(bouncePulse, strength); }
+
+window.duckAPI.getHomeRect().then((r) => {
+  if (!r) return;
+  curX = r.x + r.width * 0.82;
+  curY = r.y + r.height * 0.78;
+  prevX = curX; prevY = curY;
+});
+
+function playTone(freq, dur, type, peak){
+  try{
+    const ctx = playTone._ctx || (playTone._ctx = new (window.AudioContext || window.webkitAudioContext)());
+    const osc = ctx.createOscillator(), gain = ctx.createGain();
+    osc.type = type; osc.frequency.setValueAtTime(freq, ctx.currentTime);
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(peak, ctx.currentTime + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+    osc.connect(gain).connect(ctx.destination); osc.start(); osc.stop(ctx.currentTime + dur + 0.02);
+  } catch(e){}
+}
+function quackSound(){ playTone(360, 0.16, "sawtooth", 0.14); setTimeout(()=>playTone(300,0.12,"sawtooth",0.1), 70); }
+function trillSound(){ playTone(520,0.07,"sawtooth",0.12); setTimeout(()=>playTone(420,0.07,"sawtooth",0.12),80); setTimeout(()=>playTone(520,0.07,"sawtooth",0.12),160); }
+function whooshSound(){ playTone(220,0.22,"sine",0.1); playTone(480,0.18,"sine",0.08); }
+function boingSound(){ playTone(180,0.24,"triangle",0.16); }
+
+// a big grab-bag of distinct double-click reactions, picked at random
+// (never the same one twice in a row). Squash/stretch is real (non-uniform
+// per-axis scale) but always applied to squashGroup — a child of `duck` —
+// so it deforms relative to the duck's OWN body axes, not the screen.
+// Composing a local non-uniform scale with a separate object's rotation
+// never introduces shear; it only would if a *single* object's own
+// rotating+scaling were driven by world-space axes each frame, which this
+// isn't (see squashGroup comment above).
+const EASE_OUT_3 = (p) => 1 - Math.pow(1 - p, 3);
+const EASE_OUT_2 = (p) => 1 - Math.pow(1 - p, 2);
+const PULSE = (p) => Math.sin(p * Math.PI);
+
+const REACTIONS = {
+  hop:        { dur: 0.5, sound: "quack", apply: (p) => ({ bobY: -PULSE(p) * BR * 0.3, sX: 1 + PULSE(p) * 0.12, sY: 1 + PULSE(p) * 0.12, sZ: 1 + PULSE(p) * 0.12 }) },
+  tripleHop:  { dur: 0.8, sound: "trill", apply: (p) => { const s = Math.abs(Math.sin(p * Math.PI * 3)); return { bobY: -s * BR * 0.26, sX: 1 + s * 0.1, sY: 1 + s * 0.1, sZ: 1 + s * 0.1 }; } },
+  spin:       { dur: 0.7, sound: "whoosh", apply: (p) => ({ yawOffset: EASE_OUT_3(p) * Math.PI * 2 }) },
+  bigBounce:  { dur: 0.45, sound: "boing", apply: (p) => ({ bobY: -PULSE(p) * BR * 0.12, sX: 1 + PULSE(p) * 0.42, sY: 1 + PULSE(p) * 0.42, sZ: 1 + PULSE(p) * 0.42 }) },
+  wiggle:     { dur: 0.6, sound: "quack", apply: (p) => ({ tiltExtra: Math.sin(p * Math.PI * 9) * 0.4 * (1 - p) }) },
+  barrelRoll: { dur: 0.8, sound: "whoosh", apply: (p) => ({ tiltExtra: EASE_OUT_2(p) * Math.PI * 2 }) },
+  squishFlat: { dur: 0.5, sound: "boing", apply: (p) => { const s = PULSE(p); return { bobY: s * BR * 0.12, sX: 1 + s * 0.4, sY: 1 - s * 0.38, sZ: 1 + s * 0.32 }; } },
+  stretchTall:{ dur: 0.5, sound: "quack", apply: (p) => { const s = PULSE(p); return { bobY: -s * BR * 0.1, sX: 1 - s * 0.3, sY: 1 + s * 0.42, sZ: 1 - s * 0.26 }; } },
+  grow:       { dur: 0.6, sound: "whoosh", apply: (p) => { const s = 1 + PULSE(p) * 0.6; return { sX: s, sY: s, sZ: s }; } },
+  shrink:     { dur: 0.5, sound: "trill", apply: (p) => { const s = 1 - PULSE(p) * 0.38; return { sX: s, sY: s, sZ: s }; } },
+  jelly:      { dur: 1.0, sound: "boing", apply: (p) => { const decay = (1 - p); const w = Math.sin(p * Math.PI * 6) * decay * 0.32; return { sX: 1 + w, sY: 1 - w, sZ: 1 + w * 0.6 }; } },
+  heartbeat:  { dur: 0.55, sound: "quack", apply: (p) => { const beat = Math.abs(Math.sin(p * Math.PI * 2.4)) * (1 - p * 0.3); const s = 1 + beat * 0.24; return { sX: s, sY: s, sZ: s }; } },
+  sideSquish: { dur: 0.5, sound: "boing", apply: (p) => { const s = PULSE(p); return { sX: 1 - s * 0.34, sY: 1 + s * 0.18, sZ: 1 + s * 0.3 }; } },
+  dizzy:      { dur: 0.9, sound: "trill", apply: (p) => { const decay = (1 - p); return { yawOffset: Math.sin(p * Math.PI * 4) * 0.7 * decay, tiltExtra: Math.cos(p * Math.PI * 3) * 0.3 * decay, sX: 1 + PULSE(p) * 0.15, sY: 1 + PULSE(p) * 0.15, sZ: 1 + PULSE(p) * 0.15 }; } }
+};
+const REACTION_KEYS = Object.keys(REACTIONS);
+let lastReaction = null;
+let reaction = null;
+
+function pickReaction(){
+  if (REACTION_KEYS.length === 1) return REACTION_KEYS[0];
+  let r;
+  do { r = REACTION_KEYS[Math.floor(rand(0, REACTION_KEYS.length))]; } while (r === lastReaction);
+  lastReaction = r;
+  return r;
+}
+
+function popQuackBubble(text){
+  quackEl.textContent = text || "꽥!";
+  quackEl.style.left = curX + "px";
+  quackEl.style.top = (curY - 70) + "px";
+  quackEl.style.transition = "none";
+  quackEl.style.opacity = "1";
+  quackEl.style.transform = "translate(-50%,0) scale(0.7)";
+  requestAnimationFrame(() => {
+    quackEl.style.transition = "opacity 1.1s ease, transform 1.1s ease";
+    quackEl.style.opacity = "0";
+    quackEl.style.transform = "translate(-50%,-26px) scale(1)";
+  });
+}
+
+function celebrateLevelUp(label){
+  popQuackBubble("✨ " + label + " 레벨업!");
+  triggerBounce(1);
+  playTone(660, 0.1, "sine", 0.14);
+  setTimeout(() => playTone(880, 0.12, "sine", 0.14), 90);
+  setTimeout(() => playTone(1100, 0.16, "sine", 0.15), 180);
+}
+
+function playReactionSound(name){
+  if (name === "quack") quackSound();
+  else if (name === "trill") trillSound();
+  else if (name === "whoosh") whooshSound();
+  else if (name === "boing") boingSound();
+}
+
+function doReaction(){
+  popQuackBubble();
+  addXP(1);
+  if (REDUCE){ triggerBounce(1); quackSound(); return; }
+
+  const type = pickReaction();
+  reaction = { type, start: performance.now() };
+  triggerBounce(0.5);
+  playReactionSound(REACTIONS[type].sound);
+  if (type === "hop" || type === "bigBounce"){ velY -= 8; velX += rand(-2, 2); }
+  else if (type === "tripleHop"){ velY -= 5; }
+}
+
+// tap = open the chat (after a short wait, in case a second tap turns it
+// into a double-click); double-click = quack. Press-and-hold-still, then
+// drag = rotate in place; a normal quick drag just moves the duck.
+let clickTimer = null;
+let holdMode = false;
+let holdTimer = null;
+let lastMoveX = 0, lastMoveY = 0;
+
+duckHit.addEventListener("pointerdown", (e) => {
+  duckHit.setPointerCapture(e.pointerId);
+  duckHit.classList.add("grabbing");
+  dragging = true;
+  holdMode = false;
+  downAt = performance.now(); downX = e.clientX; downY = e.clientY;
+  lastMoveX = e.clientX; lastMoveY = e.clientY;
+  dragOffX = e.clientX - curX; dragOffY = e.clientY - curY;
+  clearTimeout(holdTimer);
+  holdTimer = setTimeout(() => {
+    if (dragging && Math.hypot(lastMoveX - downX, lastMoveY - downY) < 6) holdMode = true;
+  }, 380);
+});
+duckHit.addEventListener("pointermove", (e) => {
+  if (!dragging) return;
+  lastMoveX = e.clientX; lastMoveY = e.clientY;
+  if (holdMode){
+    duckYaw += (e.movementX || 0) * 0.012;
+    return;
+  }
+  if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) clearTimeout(holdTimer);
+  curX = e.clientX - dragOffX;
+  curY = e.clientY - dragOffY;
+});
+duckHit.addEventListener("pointerup", (e) => {
+  dragging = false;
+  clearTimeout(holdTimer);
+  const wasHold = holdMode;
+  holdMode = false;
+  duckHit.classList.remove("grabbing");
+  if (wasHold) return;
+
+  const dt = performance.now() - downAt;
+  const moved = Math.hypot(e.clientX - downX, e.clientY - downY);
+  if (dt < 260 && moved < 9){
+    if (clickTimer){
+      clearTimeout(clickTimer);
+      clickTimer = null;
+      doReaction();
+    } else {
+      clickTimer = setTimeout(() => { clickTimer = null; openChat(); }, 260);
+    }
+  }
+});
+duckHit.addEventListener("pointercancel", () => { dragging = false; holdMode = false; clearTimeout(holdTimer); duckHit.classList.remove("grabbing"); });
+
+const FRICTION = 0.965;
+let t0 = performance.now();
+let renderX = curX, renderY = curY;
+
+function physicsFrame(now){
+  if (dragging && !holdMode){
+    velX = curX - prevX; velY = curY - prevY;
+  } else if (!dragging) {
+    velX *= FRICTION; velY *= FRICTION;
+    curX += velX; curY += velY;
+
+    if (curX < HALF){ curX = HALF; velX = Math.abs(velX) * 0.5; if (Math.abs(velX) > 0.6) triggerBounce(0.4); }
+    if (curX > W - HALF){ curX = W - HALF; velX = -Math.abs(velX) * 0.5; if (Math.abs(velX) > 0.6) triggerBounce(0.4); }
+    if (curY < HALF){ curY = HALF; velY = Math.abs(velY) * 0.5; if (Math.abs(velY) > 0.6) triggerBounce(0.4); }
+    if (curY > H - HALF){ curY = H - HALF; velY = -Math.abs(velY) * 0.5; if (Math.abs(velY) > 0.6) triggerBounce(0.4); }
+  } else {
+    velX = 0; velY = 0;
+  }
+  prevX = curX; prevY = curY;
+
+  const speed = Math.hypot(velX, velY);
+  const idleBob = (!REDUCE && !dragging && speed < 0.12) ? Math.sin((now - t0) * 0.0014) * 3.5 : 0;
+  renderX = curX; renderY = curY + idleBob;
+
+  duckHit.style.left = (renderX - HALF) + "px";
+  duckHit.style.top = (renderY - HALF) + "px";
+
+  const tiltAngle = Math.atan2(velY, velX || 0.0001);
+
+  bouncePulse *= REDUCE ? 0 : 0.86;
+  const s = 1 + bouncePulse * 0.22;
+
+  let reactBob = 0, reactYawOffset = 0, reactTiltExtra = 0, sX = 1, sY = 1, sZ = 1;
+  if (reaction){
+    const t = (now - reaction.start) / 1000;
+    const def = REACTIONS[reaction.type];
+    const dur = (def && def.dur) || 0.5;
+    if (!def || t > dur){
+      reaction = null;
+    } else {
+      const r = def.apply(t / dur);
+      reactBob = r.bobY || 0;
+      reactYawOffset = r.yawOffset || 0;
+      reactTiltExtra = r.tiltExtra || 0;
+      sX = r.sX != null ? r.sX : 1;
+      sY = r.sY != null ? r.sY : 1;
+      sZ = r.sZ != null ? r.sZ : 1;
+    }
+  }
+  if (REDUCE){ sX = 1; sY = 1; sZ = 1; reactBob = 0; reactYawOffset = 0; reactTiltExtra = 0; }
+
+  duck.position.set(renderX, renderY + reactBob, 0);
+  duck.rotation.z = (REDUCE || holdMode ? 0 : tiltAngle * 0.2) + reactTiltExtra;
+  duck.rotation.y = duckYaw + reactYawOffset;
+  squashGroup.scale.set(s * sX, s * sY, s * sZ);
+
+  if (chatBubble.classList.contains("open")) positionBubble();
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(physicsFrame);
+}
+requestAnimationFrame(physicsFrame);
+
+// ---------------------------------------------------------------------
+// speech-bubble chat: no modal — the duck talks back in place
+// ---------------------------------------------------------------------
+const KNOWLEDGE = [
+  { kws: ["cors"], label: "CORS 에러 정리 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" },
+  { kws: ["typeerror", "undefined is not", "레퍼런스에러", "reference error", "타입에러"], label: "JS 에러 레퍼런스 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Errors" },
+  { kws: ["promise", "async", "await", "비동기"], label: "비동기 처리 가이드 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Asynchronous/Promises" },
+  { kws: ["merge conflict", "머지 충돌", "충돌 해결", "git conflict", "git merge"], label: "Git merge 문서", url: "https://git-scm.com/docs/git-merge" },
+  { kws: ["rebase", "리베이스"], label: "Git rebase 문서", url: "https://git-scm.com/docs/git-rebase" },
+  { kws: ["npm install", "node_modules", "npm err", "npm 에러"], label: "npm 흔한 에러 모음", url: "https://docs.npmjs.com/common-errors" },
+  { kws: ["modulenotfounderror", "pip install", "importerror", "파이썬 모듈"], label: "파이썬 패키지 설치 가이드", url: "https://packaging.python.org/en/latest/tutorials/installing-packages/" },
+  { kws: ["정규식", "regex", "정규표현식"], label: "정규식 테스트 도구", url: "https://regex101.com/" },
+  { kws: ["docker", "도커"], label: "Docker 공식 문서", url: "https://docs.docker.com/get-started/" },
+  { kws: ["useeffect", "리액트 훅", "react hook"], label: "React useEffect 문서", url: "https://react.dev/reference/react/useEffect" },
+  { kws: ["jwt", "토큰 검증", "access token"], label: "JWT 소개", url: "https://jwt.io/introduction" },
+  { kws: ["404", "500 에러", "상태코드", "status code"], label: "HTTP 상태 코드 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Status" },
+  { kws: ["타임존", "timezone", "날짜 계산", "date 객체"], label: "JS Date 문서 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Date" },
+  { kws: ["sql join", "조인", "쿼리 느림"], label: "SQL Join 튜토리얼", url: "https://www.postgresql.org/docs/current/tutorial-join.html" },
+  { kws: ["시간복잡도", "빅오", "time complexity", "big o"], label: "빅오 치트시트", url: "https://www.bigocheatsheet.com/" },
+  { kws: ["메모리 누수", "memory leak"], label: "메모리 관리 가이드 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Memory_management" },
+  { kws: ["캐시", "caching", "cache 안됨"], label: "HTTP 캐싱 가이드 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching" },
+  { kws: ["websocket", "웹소켓"], label: "WebSocket API (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API" },
+  { kws: ["ssl", "인증서 오류", "https 에러"], label: "TLS 개요 (MDN)", url: "https://developer.mozilla.org/en-US/docs/Web/Security/Transport_Layer_Security" }
+];
+
+const chatBubble = document.getElementById("chatBubble");
+const closeBtn = document.getElementById("closeBtn");
+const msgArea = document.getElementById("msgArea");
+const problem = document.getElementById("problem");
+const countEl = document.getElementById("count");
+const thoughtBubble = document.getElementById("thoughtBubble");
+const thoughtLinks = document.getElementById("thoughtLinks");
+const thoughtDots = [
+  document.getElementById("thoughtDot1"),
+  document.getElementById("thoughtDot2"),
+  document.getElementById("thoughtDot3")
+];
+
+function todayKey(){
+  const d = new Date();
+  return "duckCount_" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+function bumpCount(){
+  const key = todayKey();
+  const n = parseInt(localStorage.getItem(key) || "0", 10) + 1;
+  localStorage.setItem(key, String(n));
+  countEl.textContent = "오늘 오리한테 " + n + "번 상담함";
+}
+(function initCount(){
+  const n = parseInt(localStorage.getItem(todayKey()) || "0", 10);
+  countEl.textContent = "오늘 오리한테 " + n + "번 상담함";
+})();
+
+function faviconFor(url){
+  try{ return "https://www.google.com/s2/favicons?sz=64&domain=" + new URL(url).hostname; }
+  catch(e){ return ""; }
+}
+
+function setThoughtOpen(open){
+  thoughtBubble.classList.toggle("open", open);
+  thoughtDots.forEach((d) => d.classList.toggle("open", open));
+}
+
+function renderLinks(links){
+  thoughtLinks.innerHTML = "";
+  if (!links || !links.length){ setThoughtOpen(false); return; }
+  links.slice(0, 3).forEach((l) => {
+    const a = document.createElement("a");
+    a.href = l.url; a.target = "_blank"; a.rel = "noopener";
+    const icon = faviconFor(l.url);
+    a.innerHTML = (icon ? "<img src=\"" + icon + "\" alt=\"\">" : "") + "<span>" + l.label + "</span>";
+    thoughtLinks.appendChild(a);
+  });
+  positionThought();
+  setThoughtOpen(true);
+}
+
+function positionBubble(){
+  const bw = chatBubble.offsetWidth || 296;
+  const bh = chatBubble.offsetHeight || 140;
+  const gap = 16;
+  let below = (renderY - HALF - bh - gap) < 8;
+  chatBubble.classList.toggle("below", below);
+  chatBubble.style.transformOrigin = below ? "top center" : "bottom center";
+  const top = below ? (renderY + HALF + gap) : (renderY - HALF - bh - gap);
+  const left = clamp(renderX - bw / 2, 8, W - bw - 8);
+  chatBubble.style.left = left + "px";
+  chatBubble.style.top = clamp(top, 8, H - bh - 8) + "px";
+  if (thoughtBubble.classList.contains("open")) positionThought();
+}
+
+function positionThought(){
+  const tw = thoughtBubble.offsetWidth || 208;
+  const th = thoughtBubble.offsetHeight || 90;
+
+  // the trail always starts right at the duck's head, drifting up toward
+  // whichever side of the screen has more room
+  const side = renderX > W / 2 ? -1 : 1;
+  const startX = renderX + side * HALF * 0.35;
+  const startY = renderY - HALF * 0.85;
+
+  let bx = startX + side * (tw * 0.5 + 34);
+  let by = startY - th - 46;
+  if (by < 8) by = startY + 30;
+  bx = clamp(bx, 8, W - tw - 8);
+  by = clamp(by, 8, H - th - 8);
+  thoughtBubble.style.left = bx + "px";
+  thoughtBubble.style.top = by + "px";
+
+  const endX = bx + tw / 2 - side * (tw * 0.28);
+  const endY = by + th - 6;
+  const sizes = [10, 15, 21];
+  for (let i = 0; i < thoughtDots.length; i++){
+    const t = (i + 1) / (thoughtDots.length + 1);
+    const dx = startX + (endX - startX) * t;
+    const dy = startY + (endY - startY) * t;
+    const s = sizes[i];
+    thoughtDots[i].style.width = s + "px";
+    thoughtDots[i].style.height = s + "px";
+    thoughtDots[i].style.left = (dx - s / 2) + "px";
+    thoughtDots[i].style.top = (dy - s / 2) + "px";
+  }
+}
+
+let sessionId = null;
+let asking = false;
+
+function openChat(){
+  const wasOpen = chatBubble.classList.contains("open");
+  positionBubble();
+  chatBubble.classList.add("open");
+  if (!wasOpen){
+    sessionId = null;
+    msgArea.textContent = "막힌 걸 말해봐.";
+    setThoughtOpen(false);
+    problem.value = "";
+    bumpCount();
+  }
+  setTimeout(() => problem.focus(), 180);
+}
+function closeChat(){
+  chatBubble.classList.remove("open");
+  setThoughtOpen(false);
+  problem.blur();
+}
+closeBtn.addEventListener("click", closeChat);
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && chatBubble.classList.contains("open")) closeChat(); });
+window.addEventListener("pointerdown", (e) => {
+  if (!chatBubble.classList.contains("open")) return;
+  if (e.target.closest("#chatBubble") || e.target.closest("#thoughtBubble") || e.target.closest("#duckHit")) return;
+  closeChat();
+});
+
+let debounceT = null;
+problem.addEventListener("input", () => {
+  clearTimeout(debounceT);
+  debounceT = setTimeout(() => {
+    const text = problem.value.toLowerCase();
+    if (!text.trim()){ setThoughtOpen(false); return; }
+    const seen = new Set(); const matches = [];
+    for (const k of KNOWLEDGE){
+      if (seen.has(k.url)) continue;
+      if (k.kws.some((w) => text.indexOf(w) !== -1)){ matches.push(k); seen.add(k.url); }
+    }
+    renderLinks(matches);
+  }, 280);
+});
+
+// ---------------------------------------------------------------------
+// settings (right-click the duck): pick a provider, edit the system prompt
+// ---------------------------------------------------------------------
+const settingsOverlay = document.getElementById("settingsOverlay");
+const settingsPanel = document.getElementById("settingsPanel");
+const settingsCloseBtn = document.getElementById("settingsCloseBtn");
+const promptArea = document.getElementById("promptArea");
+const providerBtns = Array.from(document.querySelectorAll(".providerBtn[data-provider]"));
+const resetPromptBtn = document.getElementById("resetPromptBtn");
+const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+
+let provider = localStorage.getItem("duckProvider") || "claude";
+let customPrompt = localStorage.getItem("duckSystemPrompt") || "";
+let defaultPrompt = "";
+
+function refreshProviderButtons(){
+  providerBtns.forEach((b) => b.classList.toggle("active", b.dataset.provider === provider));
+}
+providerBtns.forEach((b) => b.addEventListener("click", () => { provider = b.dataset.provider; refreshProviderButtons(); }));
+
+resetPromptBtn.addEventListener("click", async () => {
+  if (!defaultPrompt) defaultPrompt = await window.duckAPI.getDefaultPrompt();
+  promptArea.value = defaultPrompt;
+});
+
+let displaysCache = null;
+async function displayUnderDuck(){
+  if (!displaysCache) displaysCache = await window.duckAPI.getDisplays();
+  for (const d of displaysCache){
+    if (renderX >= d.x && renderX < d.x + d.width && renderY >= d.y && renderY < d.y + d.height) return d;
+  }
+  return displaysCache[0] || { x: 0, y: 0, width: W, height: H };
+}
+
+async function openSettings(){
+  if (!defaultPrompt) defaultPrompt = await window.duckAPI.getDefaultPrompt();
+  promptArea.value = customPrompt || defaultPrompt;
+  refreshProviderButtons();
+  if (xpBadge) xpBadge.textContent = totalXP + " XP";
+  const d = await displayUnderDuck();
+  settingsPanel.style.left = (d.x + d.width / 2) + "px";
+  settingsPanel.style.top = (d.y + d.height / 2) + "px";
+  settingsOverlay.classList.add("open");
+}
+function closeSettings(){ settingsOverlay.classList.remove("open"); }
+
+saveSettingsBtn.addEventListener("click", () => {
+  localStorage.setItem("duckProvider", provider);
+  const typed = promptArea.value.trim();
+  customPrompt = (typed && typed !== defaultPrompt) ? typed : "";
+  localStorage.setItem("duckSystemPrompt", customPrompt);
+  sessionId = null; // provider/prompt changed — start the next chat fresh
+  closeSettings();
+});
+settingsCloseBtn.addEventListener("click", closeSettings);
+settingsOverlay.addEventListener("pointerdown", (e) => { if (e.target === settingsOverlay) closeSettings(); });
+window.addEventListener("keydown", (e) => { if (e.key === "Escape" && settingsOverlay.classList.contains("open")) closeSettings(); });
+
+// tabs
+const tabBtns = Array.from(document.querySelectorAll(".tabBtn"));
+const tabPanes = { settings: document.getElementById("tabSettings"), customize: document.getElementById("tabCustomize") };
+tabBtns.forEach((b) => b.addEventListener("click", () => {
+  tabBtns.forEach((x) => x.classList.toggle("active", x === b));
+  Object.keys(tabPanes).forEach((k) => { tabPanes[k].style.display = (k === b.dataset.tab) ? "flex" : "none"; });
+  if (b.dataset.tab === "customize") refreshCustomizeUI();
+}));
+
+// customize tab: spend shared XP to unlock more shape/color options per part
+const partListEl = document.getElementById("partList");
+const xpBadge = document.getElementById("xpBadge");
+
+function hexCss(n){ return "#" + n.toString(16).padStart(6, "0"); }
+
+function refreshCustomizeUI(){
+  xpBadge.textContent = totalXP + " XP";
+  partListEl.innerHTML = "";
+  PARTS.forEach((def) => {
+    const st = partOf(def.id);
+    const row = document.createElement("div");
+    row.className = "partRow";
+
+    const head = document.createElement("div");
+    head.className = "partRowHead";
+    head.innerHTML = "<span class=\"pName\">" + def.label + "</span><span class=\"pLvl\">Lv." + st.level + "/" + MAX_LEVEL + "</span>";
+    row.appendChild(head);
+
+    const shapeRow = document.createElement("div");
+    shapeRow.className = "swatchRow";
+    for (let i = 0; i <= st.level; i++){
+      const sw = document.createElement("button");
+      sw.className = "shapeSwatch" + (i === st.shapeIdx ? " selected" : "");
+      sw.title = SHAPES[i].label;
+      sw.textContent = SHAPES[i].id === "sphere" ? "●" : SHAPES[i].id === "box" ? "■" : SHAPES[i].id === "cone" ? "▲" : SHAPES[i].id === "cylinder" ? "⬤" : SHAPES[i].id === "octahedron" ? "◆" : SHAPES[i].id === "torus" ? "◯" : "▮";
+      sw.addEventListener("click", () => { st.shapeIdx = i; savePartState(); rebuildPart(def.id); refreshCustomizeUI(); });
+      shapeRow.appendChild(sw);
+    }
+    row.appendChild(shapeRow);
+
+    const colorRow = document.createElement("div");
+    colorRow.className = "swatchRow";
+    for (let i = 0; i <= st.level; i++){
+      const sw = document.createElement("button");
+      sw.className = "colorSwatch" + (i === st.colorIdx ? " selected" : "");
+      sw.style.background = hexCss(colorForChoice(def, i));
+      sw.addEventListener("click", () => { st.colorIdx = i; savePartState(); rebuildPart(def.id); refreshCustomizeUI(); });
+      colorRow.appendChild(sw);
+    }
+    row.appendChild(colorRow);
+
+    const btn = document.createElement("button");
+    if (st.level >= MAX_LEVEL){
+      btn.className = "unlockBtn maxed";
+      btn.textContent = "만렙";
+      btn.disabled = true;
+    } else {
+      const cost = costForLevel(st.level + 1);
+      btn.className = "unlockBtn";
+      btn.textContent = "다음 단계 해금 (" + cost + " XP)";
+      btn.disabled = totalXP < cost;
+      btn.addEventListener("click", () => {
+        if (totalXP < cost) return;
+        totalXP -= cost;
+        localStorage.setItem("duckXP", String(totalXP));
+        xpHud.textContent = "✨ " + totalXP + " XP";
+        st.level += 1;
+        st.shapeIdx = st.level;
+        st.colorIdx = st.level;
+        savePartState();
+        rebuildPart(def.id);
+        refreshCustomizeUI();
+        celebrateLevelUp(def.label);
+      });
+    }
+    row.appendChild(btn);
+
+    partListEl.appendChild(row);
+  });
+}
+
+duckHit.addEventListener("contextmenu", (e) => { e.preventDefault(); openSettings(); });
+
+async function askDuck(){
+  const text = problem.value.trim();
+  if (!text || asking) return;
+  asking = true;
+  problem.value = "";
+  msgArea.textContent = "음... 잠깐만.";
+  addXP(1);
+  try{
+    const result = await window.duckAPI.ask(text, sessionId, provider, customPrompt);
+    if (result && result.error){
+      msgArea.textContent = "지금은 대답을 못 들었어. (" + provider + " 로그인 상태인지 확인해봐)";
+    } else {
+      msgArea.textContent = result.note || "음, 조금 더 자세히 말해줄래?";
+      renderLinks(result.links || []);
+      sessionId = result.sessionId || sessionId;
+    }
+  } catch(e){
+    msgArea.textContent = "연결이 잠깐 끊겼나봐.";
+  } finally {
+    asking = false;
+    requestAnimationFrame(() => { if (chatBubble.classList.contains("open")) positionBubble(); });
+  }
+}
+problem.addEventListener("keydown", (e) => {
+  if (e.key === "Enter"){
+    e.preventDefault();
+    askDuck();
+  }
+});
+
+document.getElementById("quitBtn").addEventListener("click", () => window.duckAPI.quit());
+</script>
+</body>
+</html>

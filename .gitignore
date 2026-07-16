@@ -1,0 +1,7 @@
+node_modules/
+.omc/
+*.log
+
+# unused leftover from an abandoned approach (see CLAUDE.md "Known inert
+# leftovers" / CHANGELOG §9) — not referenced by any current code
+assets/duck/
