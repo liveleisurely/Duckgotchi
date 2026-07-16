@@ -5,6 +5,11 @@ const { spawn } = require("child_process");
 
 let win = null;
 let virtualBounds = null;
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+
+if (!gotSingleInstanceLock) {
+  app.quit();
+}
 
 const DEFAULT_SYSTEM_PROMPT = [
   "You are a friendly rubber-duck debugging companion for a Korean developer who is stuck.",
@@ -159,7 +164,15 @@ function createWindow() {
   win.loadFile("index.html");
 }
 
+app.on("second-instance", () => {
+  if (!win) return;
+  if (win.isMinimized()) win.restore();
+  win.show();
+  win.focus();
+});
+
 app.whenReady().then(() => {
+  if (!gotSingleInstanceLock) return;
   createWindow();
   globalShortcut.register("Control+Shift+Q", () => app.quit());
 });

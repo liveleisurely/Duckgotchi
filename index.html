@@ -40,10 +40,10 @@
   #xpHud.bump{ transform: scale(1.18); }
   #quitBtn{
     position: fixed; top: 12px; right: 12px;
-    width: 30px; height: 30px; border-radius: 50%;
+    min-width: 30px; height: 30px; padding: 0 10px; border-radius: 999px;
     background: rgba(255,255,255,0.75); box-shadow: 0 2px 8px rgba(15,40,35,0.12);
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; cursor: pointer;
+    font-size: 12px; font-weight: 800; cursor: pointer;
   }
 
   #duckHit{ position: fixed; width: 200px; height: 200px; border-radius: 50%; cursor: grab; }
@@ -195,6 +195,28 @@
     background: #fff; outline: none;
   }
   #promptArea:focus{ border-color: var(--coral); }
+  #adminPanel{
+    display: flex; flex-direction: column; gap: 8px;
+    padding: 12px; border: 1px dashed rgba(22,53,47,0.16); border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+  }
+  #adminRow{ display: flex; gap: 8px; }
+  #adminCodeInput{
+    flex: 1; border: 1px solid rgba(22,53,47,0.15); border-radius: 12px;
+    padding: 10px 12px; font-size: 13px; font-family: inherit; color: var(--ink);
+    background: #fff; outline: none;
+  }
+  #adminCodeInput:focus{ border-color: var(--coral); }
+  #adminApplyBtn, #resetUnlockBtn{
+    border: none; border-radius: 12px; padding: 10px 13px;
+    font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  #adminApplyBtn{
+    background: var(--ink); color: #fff; white-space: nowrap;
+  }
+  #resetUnlockBtn{
+    background: rgba(255,138,91,0.14); color: var(--coral);
+  }
   #settingsBtns{ display: flex; gap: 8px; }
   #resetPromptBtn{
     border: none; background: rgba(22,53,47,0.08); color: var(--ink);
@@ -223,7 +245,7 @@
 
 <div id="count" class="hit">오늘 오리한테 0번 상담함</div>
 <div id="xpHud" class="hit" title="우클릭해서 파츠 커스터마이징">✨ 0 XP</div>
-<div id="quitBtn" class="hit" title="오리 재우기 (Ctrl+Shift+Q)">🌙</div>
+<div id="quitBtn" class="hit" title="종료 (Ctrl+Shift+Q)">종료</div>
 <div id="duckHit" class="hit"></div>
 <div id="quack">꽥!</div>
 
@@ -263,6 +285,15 @@
       <div id="settingsBtns">
         <button id="resetPromptBtn">기본값으로</button>
         <button id="saveSettingsBtn">저장하고 닫기</button>
+      </div>
+      <div id="adminPanel">
+        <div class="settingsLabel">관리자 모드</div>
+        <div id="adminRow">
+          <input id="adminCodeInput" type="password" placeholder="코드 입력" autocomplete="off" />
+          <button id="adminApplyBtn">적용</button>
+        </div>
+        <div class="settingsLabel" id="adminHint">thanks를 입력하면 바로 전부 해금됩니다.</div>
+        <button id="resetUnlockBtn">해금 초기화</button>
       </div>
     </div>
 
@@ -847,6 +878,10 @@ const promptArea = document.getElementById("promptArea");
 const providerBtns = Array.from(document.querySelectorAll(".providerBtn[data-provider]"));
 const resetPromptBtn = document.getElementById("resetPromptBtn");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
+const adminCodeInput = document.getElementById("adminCodeInput");
+const adminApplyBtn = document.getElementById("adminApplyBtn");
+const resetUnlockBtn = document.getElementById("resetUnlockBtn");
+const adminHint = document.getElementById("adminHint");
 
 let provider = localStorage.getItem("duckProvider") || "claude";
 let customPrompt = localStorage.getItem("duckSystemPrompt") || "";
@@ -856,6 +891,60 @@ function refreshProviderButtons(){
   providerBtns.forEach((b) => b.classList.toggle("active", b.dataset.provider === provider));
 }
 providerBtns.forEach((b) => b.addEventListener("click", () => { provider = b.dataset.provider; refreshProviderButtons(); }));
+
+function setAdminHint(text, error){
+  adminHint.textContent = text;
+  adminHint.style.color = error ? "var(--coral)" : "var(--ink-soft)";
+}
+
+function unlockAllParts(){
+  PARTS.forEach((def) => {
+    const st = partOf(def.id);
+    st.level = MAX_LEVEL;
+    st.shapeIdx = MAX_LEVEL;
+    st.colorIdx = MAX_LEVEL;
+  });
+  savePartState();
+  PARTS.forEach((def) => rebuildPart(def.id));
+  refreshCustomizeUI();
+}
+
+function resetUnlockProgress(){
+  partState = {};
+  localStorage.removeItem("duckParts");
+  totalXP = 0;
+  localStorage.removeItem("duckXP");
+  xpHud.textContent = "0 XP";
+  PARTS.forEach((def) => rebuildPart(def.id));
+  refreshCustomizeUI();
+}
+
+function applyAdminCode(){
+  const code = adminCodeInput.value.trim().toLowerCase();
+  if (code === "thanks"){
+    unlockAllParts();
+    adminCodeInput.value = "";
+    setAdminHint("전체 해금 완료.", false);
+  } else {
+    setAdminHint("코드가 틀렸습니다. thanks를 입력하세요.", true);
+  }
+}
+
+adminApplyBtn.addEventListener("click", applyAdminCode);
+adminCodeInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter"){
+    e.preventDefault();
+    applyAdminCode();
+  }
+});
+adminCodeInput.addEventListener("input", () => {
+  if (adminCodeInput.value.trim().toLowerCase() === "thanks") applyAdminCode();
+});
+resetUnlockBtn.addEventListener("click", () => {
+  resetUnlockProgress();
+  adminCodeInput.value = "";
+  setAdminHint("해금 상태를 초기화했습니다.", false);
+});
 
 resetPromptBtn.addEventListener("click", async () => {
   if (!defaultPrompt) defaultPrompt = await window.duckAPI.getDefaultPrompt();
@@ -874,6 +963,8 @@ async function displayUnderDuck(){
 async function openSettings(){
   if (!defaultPrompt) defaultPrompt = await window.duckAPI.getDefaultPrompt();
   promptArea.value = customPrompt || defaultPrompt;
+  adminCodeInput.value = "";
+  setAdminHint("thanks를 입력하면 바로 전부 해금됩니다.", false);
   refreshProviderButtons();
   if (xpBadge) xpBadge.textContent = totalXP + " XP";
   const d = await displayUnderDuck();
