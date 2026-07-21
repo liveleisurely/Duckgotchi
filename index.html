@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<title>말랑오리</title>
+<title>덕고치</title>
 <style>
   :root{
     --ink: #16352f;
@@ -18,19 +18,10 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", sans-serif;
     color: var(--ink);
   }
-  #three{ position: fixed; inset: 0; width: 100vw; height: 100vh; pointer-events: none; display: block; }
-
   .hit{ pointer-events: auto; }
 
-  #count{
-    position: fixed; top: 14px; left: 14px;
-    font-size: 12px; color: var(--ink-soft);
-    background: rgba(255,255,255,0.75);
-    padding: 6px 11px; border-radius: 999px;
-    box-shadow: 0 2px 8px rgba(15,40,35,0.12);
-  }
   #xpHud{
-    position: fixed; top: 44px; left: 14px;
+    position: fixed;
     font-size: 12px; font-weight: 700; color: var(--coral);
     background: rgba(255,138,91,0.14);
     padding: 6px 11px; border-radius: 999px; cursor: pointer;
@@ -46,8 +37,12 @@
     font-size: 12px; font-weight: 800; cursor: pointer;
   }
 
-  #duckHit{ position: fixed; width: 200px; height: 200px; border-radius: 50%; cursor: grab; }
+  #duckHit{
+    position: fixed; width: 190px; height: 190px;
+    cursor: grab; pointer-events: auto;
+  }
   #duckHit.grabbing{ cursor: grabbing; }
+  #duckSvg{ width: 100%; height: 100%; display: block; overflow: visible; }
 
   #quack{
     position: fixed; transform: translate(-50%, 0);
@@ -82,6 +77,27 @@
     display: flex; align-items: center; justify-content: center;
   }
   #msgArea{ font-size: 13.5px; line-height: 1.5; padding-right: 20px; min-height: 20px; }
+
+  /* the full transcript lives in the settings "대화내역" tab, not the bubble */
+  #historyLog{
+    display: flex; flex-direction: column; gap: 7px;
+    max-height: 320px; overflow-y: auto; overflow-x: hidden; padding-right: 4px;
+    scrollbar-width: thin; scrollbar-color: rgba(22,53,47,0.25) transparent;
+  }
+  #historyLog::-webkit-scrollbar{ width: 6px; }
+  #historyLog::-webkit-scrollbar-thumb{ background: rgba(22,53,47,0.2); border-radius: 3px; }
+  #historyLog:empty::before{ content: "아직 나눈 대화가 없어."; color: var(--ink-soft); font-size: 12px; }
+  .msg{
+    font-size: 13px; line-height: 1.5; padding: 7px 10px; border-radius: 13px;
+    max-width: 88%; white-space: pre-wrap; word-break: break-word;
+  }
+  .msg.user{ align-self: flex-end; background: #d8f0e4; color: var(--ink); border-bottom-right-radius: 4px; }
+  .msg.duck{ align-self: flex-start; background: #f2faf6; color: var(--ink); border-bottom-left-radius: 4px; }
+  #resetHistoryBtn{
+    align-self: flex-start; border: none; background: rgba(190,18,60,0.10); color: #be123c;
+    border-radius: 12px; padding: 9px 12px; font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  #resetHistoryBtn:hover{ background: rgba(190,18,60,0.18); }
 
   #problem{
     border: none; border-top: 1px solid rgba(22,53,47,0.12);
@@ -137,16 +153,37 @@
     transform: translate(-50%, -50%) scale(0.95);
     transition: transform 0.2s cubic-bezier(.2,.9,.3,1.2);
   }
+  #settingsPanel.customizeMode{ width: min(680px, 94vw); }
   #settingsOverlay.open #settingsPanel{ transform: translate(-50%, -50%) scale(1); }
   #settingsHead{ display: flex; align-items: center; justify-content: space-between; }
   #settingsHead h1{ font-size: 15px; margin: 0; font-weight: 800; }
-  #providerRow{ display: flex; gap: 8px; }
+  /* shared style for the settings ✕ close button (the old provider-picker
+     buttons were replaced by #providerSelect) */
   .providerBtn{
-    flex: 1; border: 1px solid rgba(22,53,47,0.15); background: #fff; color: var(--ink);
+    border: 1px solid rgba(22,53,47,0.15); background: #fff; color: var(--ink);
     border-radius: 12px; padding: 10px; font-size: 13px; font-weight: 700; cursor: pointer;
   }
-  .providerBtn.active{ background: var(--coral); border-color: var(--coral); color: #fff; }
   .settingsLabel{ font-size: 11.5px; color: var(--ink-soft); }
+  #providerSelect{
+    width: 100%; box-sizing: border-box;
+    border: 1px solid rgba(22,53,47,0.15); border-radius: 12px; padding: 10px;
+    font-size: 13px; font-weight: 700; font-family: inherit; color: var(--ink);
+    background: #fff; outline: none; cursor: pointer;
+  }
+  #providerSelect:focus{ border-color: var(--coral); }
+  #apiFields{
+    display: flex; flex-direction: column; gap: 7px;
+    padding: 11px; border: 1px solid rgba(22,53,47,0.12); border-radius: 14px;
+    background: rgba(255,255,255,0.7);
+  }
+  .apiInput{
+    width: 100%; box-sizing: border-box;
+    border: 1px solid rgba(22,53,47,0.15); border-radius: 10px; padding: 9px 11px;
+    font-size: 12.5px; font-family: inherit; color: var(--ink); background: #fff; outline: none;
+  }
+  .apiInput:focus{ border-color: var(--coral); }
+  #autoCloseRow{ display: flex; align-items: center; gap: 10px; }
+  #autoCloseRange{ flex: 1; accent-color: var(--coral); cursor: pointer; }
 
   #tabRow{ display: flex; gap: 8px; border-bottom: 1px solid rgba(22,53,47,0.1); padding-bottom: 10px; }
   .tabBtn{
@@ -161,23 +198,63 @@
   }
   .tabPane{ display: flex; flex-direction: column; gap: 12px; }
 
-  #partList{
-    display: flex; flex-direction: column; gap: 8px;
-    max-height: 46vh; overflow-y: auto; padding-right: 2px;
+  #equipmentShell{
+    display: flex; flex-direction: column; gap: 10px;
+    max-height: 70vh;
   }
-  .partRow{
-    border: 1px solid rgba(22,53,47,0.1); border-radius: 12px; padding: 9px 10px;
-    display: flex; flex-direction: column; gap: 7px; background: #fff;
+  #equipmentBoardTitle{
+    display: flex; justify-content: space-between; align-items: center;
+    color: var(--ink); font-size: 12px; font-weight: 800;
   }
-  .partRowHead{ display: flex; align-items: center; justify-content: space-between; }
-  .partRowHead .pName{ font-size: 12.5px; font-weight: 700; }
-  .partRowHead .pLvl{ font-size: 10.5px; color: var(--ink-soft); }
-  .swatchRow{ display: flex; flex-wrap: wrap; gap: 5px; }
-  .shapeSwatch{
-    width: 26px; height: 26px; border-radius: 8px; border: 1.5px solid rgba(22,53,47,0.15);
-    background: #f4faf7; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center;
+  /* 메이플스토리 장비창처럼: 가운데 실시간 미리보기 + 양옆에 부위 슬롯 */
+  #equipmentWheel{
+    display: grid; grid-template-columns: 76px 1fr 76px; grid-template-rows: 250px;
+    gap: 8px; padding: 10px; border-radius: 16px;
+    border: 1px solid rgba(22,53,47,0.12);
+    background:
+      linear-gradient(rgba(255,255,255,0.68), rgba(255,255,255,0.68)),
+      repeating-linear-gradient(135deg, #f3ead6 0 8px, #eee1c6 8px 16px);
   }
-  .shapeSwatch.selected{ border-color: var(--ink); border-width: 2px; }
+  .slotColumn{
+    display: flex; flex-direction: column; gap: 6px;
+    max-height: 250px; overflow-y: auto; padding-right: 1px;
+  }
+  #equipmentPreview{
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid rgba(22,53,47,0.1);
+    background: radial-gradient(ellipse at 50% 38%, rgba(255,255,255,0.95), rgba(255,255,255,0.4) 74%);
+  }
+  #previewSvg{ width: 100%; height: 100%; display: block; overflow: visible; }
+  .equipmentSlot{
+    min-height: 52px; flex-shrink: 0; border: 1px solid rgba(22,53,47,0.15); border-radius: 11px;
+    background: rgba(255,255,255,0.85); color: var(--ink); cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,0.6);
+    padding: 4px 2px;
+  }
+  .equipmentSlot:hover{ border-color: rgba(255,138,91,0.7); }
+  .equipmentSlot.selected{ border-color: var(--coral); box-shadow: inset 0 0 0 2px rgba(255,138,91,0.22); }
+  .equipmentSlot .slotIcon{ font-size: 16px; line-height: 1; }
+  .equipmentSlot .slotName{ font-size: 8px; font-weight: 800; }
+  .equipmentSlot .slotLevel{ font-size: 7.5px; color: var(--ink-soft); }
+  #equipmentDetail{
+    overflow-y: auto; padding: 14px; border-radius: 16px;
+    border: 1px solid rgba(22,53,47,0.12); background: #fff;
+  }
+  #equipmentDetailHead{ display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; }
+  #equipmentDetailHead strong{ font-size: 15px; }
+  #equipmentDetailHead span{ font-size: 10.5px; color: var(--ink-soft); }
+  .equipmentSectionLabel{ margin: 12px 0 7px; font-size: 10.5px; font-weight: 800; color: var(--ink-soft); }
+  #skinChoiceGrid{ display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+  .skinChoice{
+    min-height: 58px; padding: 7px 5px; border: 1px solid rgba(22,53,47,0.13); border-radius: 11px;
+    background: #f5faf7; color: var(--ink); cursor: pointer; font-size: 10px; font-weight: 700;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 4px;
+  }
+  .skinChoice .skinIcon{ font-size: 18px; }
+  .skinChoice.selected{ border: 2px solid var(--ink); background: #fff8ed; }
+  .skinChoice.locked{ opacity: 0.42; cursor: default; filter: grayscale(0.8); }
+  #equipmentColorRow{ display: flex; flex-wrap: wrap; gap: 7px; }
   .colorSwatch{
     width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid rgba(22,53,47,0.15); cursor: pointer;
   }
@@ -227,26 +304,58 @@
     border-radius: 12px; padding: 10px 13px; font-size: 13px; font-weight: 700; cursor: pointer;
   }
 
+  #codePanel{
+    display: flex; flex-direction: column; gap: 10px;
+    padding: 12px; border: 1px solid rgba(22,53,47,0.12);
+    border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.92), rgba(242,250,246,0.92));
+  }
+  #codePanel.locked{
+    opacity: 0.72;
+  }
+  #codePanelHeader{
+    display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  }
+  #codePanelHeader strong{
+    font-size: 13px;
+  }
+  #codeStatus{
+    font-size: 11px; color: var(--ink-soft);
+  }
+  #duckCodeArea{
+    width: 100%; min-height: 148px; resize: vertical; box-sizing: border-box;
+    border: 1px solid rgba(22,53,47,0.15); border-radius: 12px; padding: 10px;
+    font-size: 12px; line-height: 1.45; font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    color: var(--ink); background: #fff; outline: none;
+  }
+  #duckCodeArea:focus{ border-color: var(--coral); }
+  #codeBtns{ display: flex; gap: 8px; }
+  #applyDuckCodeBtn, #loadDuckCodeBtn{
+    border: none; border-radius: 12px; padding: 10px 13px;
+    font-size: 12.5px; font-weight: 700; cursor: pointer;
+  }
+  #applyDuckCodeBtn{
+    flex: 1; background: var(--coral); color: #fff;
+  }
+  #loadDuckCodeBtn{
+    background: rgba(22,53,47,0.08); color: var(--ink);
+  }
+
+  @media (max-width: 620px){
+    #equipmentWheel{ grid-template-columns: 1fr; }
+    #equipmentPreview{ order: -1; min-height: 160px; }
+    .slotColumn{ flex-direction: row; flex-wrap: wrap; max-height: none; overflow-y: visible; }
+  }
+
   @media (prefers-reduced-motion: reduce){
     #chatBubble, #thoughtBubble, #settingsOverlay, #settingsPanel{ transition: none; }
   }
 </style>
-<script type="importmap">
-{
-  "imports": {
-    "three": "./node_modules/three/build/three.module.js",
-    "three/addons/": "./node_modules/three/examples/jsm/"
-  }
-}
-</script>
 </head>
 <body>
-<canvas id="three"></canvas>
 
-<div id="count" class="hit">오늘 오리한테 0번 상담함</div>
 <div id="xpHud" class="hit" title="우클릭해서 파츠 커스터마이징">✨ 0 XP</div>
 <div id="quitBtn" class="hit" title="종료 (Ctrl+Shift+Q)">종료</div>
-<div id="duckHit" class="hit"></div>
+<div id="duckHit" class="hit"><svg id="duckSvg" viewBox="-100 -100 200 200"></svg></div>
 <div id="quack">꽥!</div>
 
 <div id="chatBubble" class="hit">
@@ -271,148 +380,496 @@
     </div>
     <div id="tabRow">
       <button class="tabBtn active" data-tab="settings">설정</button>
+      <button class="tabBtn" data-tab="history">대화내역</button>
       <button class="tabBtn" data-tab="customize">커스텀 <span id="xpBadge">0 XP</span></button>
     </div>
 
     <div id="tabSettings" class="tabPane">
       <div class="settingsLabel">어떤 AI로 오리와 대화할까</div>
-      <div id="providerRow">
-        <button class="providerBtn" data-provider="claude">Claude</button>
-        <button class="providerBtn" data-provider="codex">Codex</button>
+      <select id="providerSelect" class="hit">
+        <optgroup label="내 컴퓨터 CLI (키 불필요)">
+          <option value="claude">Claude Code (CLI)</option>
+          <option value="codex">Codex (CLI)</option>
+        </optgroup>
+        <optgroup label="API 키로 연결">
+          <option value="openai">OpenAI</option>
+          <option value="anthropic">Anthropic (API)</option>
+          <option value="gemini">Google Gemini</option>
+          <option value="openrouter">OpenRouter</option>
+          <option value="groq">Groq</option>
+          <option value="xai">xAI (Grok)</option>
+        </optgroup>
+        <optgroup label="로컬 서버 (키 불필요)">
+          <option value="ollama">Ollama (로컬)</option>
+          <option value="lmstudio">LM Studio (로컬)</option>
+        </optgroup>
+        <optgroup label="직접 입력">
+          <option value="custom">커스텀 (OpenAI 호환)</option>
+        </optgroup>
+      </select>
+      <div id="apiFields" style="display:none;">
+        <input id="apiBaseUrl" class="apiInput" type="text" spellcheck="false" placeholder="연결 주소 (Base URL)" />
+        <input id="apiModel" class="apiInput" type="text" spellcheck="false" placeholder="모델 이름" />
+        <input id="apiKeyInput" class="apiInput" type="password" autocomplete="off" placeholder="API 키" />
+        <div class="settingsLabel" id="apiHint"></div>
       </div>
-      <div class="settingsLabel">오리한테 줄 지침 (원하는 목적에 맞게 자유롭게 수정 가능)</div>
-      <textarea id="promptArea"></textarea>
+      <div class="settingsLabel">대화창 자동 닫힘 (마지막 조작 후) — <span id="autoCloseVal">5초</span></div>
+      <div id="autoCloseRow">
+        <input id="autoCloseRange" type="range" min="0" max="30" step="1" value="5">
+      </div>
+      <div class="settingsLabel">오리 기본 성격은 이미 적용돼 있어. 추가로 시키고 싶은 게 있으면 여기에 (비워두면 기본 성격 그대로)</div>
+      <textarea id="promptArea" placeholder="예: 답변을 더 짧게 해줘 / 파이썬 위주로 조언해줘 ..."></textarea>
       <div id="settingsBtns">
-        <button id="resetPromptBtn">기본값으로</button>
+        <button id="resetPromptBtn">비우기</button>
         <button id="saveSettingsBtn">저장하고 닫기</button>
       </div>
       <div id="adminPanel">
-        <div class="settingsLabel">관리자 모드</div>
+        <div class="settingsLabel">쿠폰 입력</div>
         <div id="adminRow">
-          <input id="adminCodeInput" type="password" placeholder="코드 입력" autocomplete="off" />
+          <input id="adminCodeInput" type="text" placeholder="쿠폰 코드" autocomplete="off" spellcheck="false" />
           <button id="adminApplyBtn">적용</button>
         </div>
-        <div class="settingsLabel" id="adminHint">thanks를 입력하면 바로 전부 해금됩니다.</div>
+        <div class="settingsLabel" id="adminHint">쿠폰 코드를 입력해봐.</div>
         <button id="resetUnlockBtn">해금 초기화</button>
       </div>
     </div>
 
+    <div id="tabHistory" class="tabPane" style="display:none;">
+      <div class="settingsLabel">오리랑 나눈 대화 (아래로 갈수록 최근)</div>
+      <div id="historyLog"></div>
+      <button id="resetHistoryBtn">대화 기록 초기화</button>
+    </div>
+
     <div id="tabCustomize" class="tabPane" style="display:none;">
-      <div class="settingsLabel">질문하거나 오리를 더블클릭하면 XP가 쌓여. 원하는 파츠에 자유롭게 투자해서 모양·색을 늘려봐.</div>
-      <div id="partList"></div>
+      <div class="settingsLabel">질문하거나 오리를 더블클릭하면 XP가 쌓여. 스킨 트랙을 성장시켜 오리에게 의상과 장식을 겹쳐 입혀봐.</div>
+      <div id="equipmentShell">
+        <div id="equipmentBoardTitle"><span>오리 장비</span><span id="equipmentCount">0/0</span></div>
+        <div id="equipmentWheel">
+          <div id="equipmentSlotsLeft" class="slotColumn"></div>
+          <div id="equipmentPreview"><svg id="previewSvg" viewBox="-100 -100 200 200"></svg></div>
+          <div id="equipmentSlotsRight" class="slotColumn"></div>
+        </div>
+        <section id="equipmentDetail"></section>
+      </div>
+      <div id="codePanel" class="locked" style="display:none;">
+        <div id="codePanelHeader">
+          <strong>오리 코드</strong>
+          <span id="codeStatus">모든 스킨 트랙을 완료하면 열립니다.</span>
+        </div>
+        <textarea id="duckCodeArea" spellcheck="false" placeholder='{"palette":{"primary":"#ffcf4a","belly":"#fff0bd"}}'></textarea>
+        <div id="codeBtns">
+          <button id="loadDuckCodeBtn" type="button">템플릿 불러오기</button>
+          <button id="applyDuckCodeBtn" type="button">코드 적용</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 
 <script type="module">
-import * as THREE from "three";
-
 const REDUCE = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 function rand(a,b){ return a + Math.random() * (b - a); }
 function clamp(v,a,b){ return v < a ? a : (v > b ? b : v); }
 
 // ---------------------------------------------------------------------
-// click-through: window stays non-interactive except over ".hit" elements
+// tiny SVG-building helpers — every part of the duck is plain vector
+// shapes (circle/ellipse/path), never a raster image. Layered like a
+// paper doll: each track owns one <g>, cleared and redrawn on change.
+// ---------------------------------------------------------------------
+const SVGNS = "http://www.w3.org/2000/svg";
+function sv(tag, attrs){
+  const e = document.createElementNS(SVGNS, tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+function clearEl(e){ while (e.firstChild) e.removeChild(e.firstChild); }
+function hexCss(n){ return "#" + (n >>> 0).toString(16).padStart(6, "0").slice(-6); }
+function starPath(cx, cy, r){
+  const r2 = r * 0.34;
+  return "M " + cx + " " + (cy - r) + " Q " + (cx + r2) + " " + (cy - r2) + " " + (cx + r) + " " + cy +
+    " Q " + (cx + r2) + " " + (cy + r2) + " " + cx + " " + (cy + r) +
+    " Q " + (cx - r2) + " " + (cy + r2) + " " + (cx - r) + " " + cy +
+    " Q " + (cx - r2) + " " + (cy - r2) + " " + cx + " " + (cy - r) + " Z";
+}
+function crownPath(cx, cy, w, h){
+  const l = cx - w / 2, r = cx + w / 2, top = cy - h, base = cy;
+  return "M " + l + " " + base + " L " + l + " " + (top + h * 0.35) + " L " + (l + w * 0.2) + " " + top +
+    " L " + (cx - w * 0.08) + " " + (top + h * 0.4) + " L " + cx + " " + top +
+    " L " + (cx + w * 0.08) + " " + (top + h * 0.4) + " L " + (r - w * 0.2) + " " + top +
+    " L " + r + " " + (top + h * 0.35) + " L " + r + " " + base + " Z";
+}
+
+// ---------------------------------------------------------------------
+// click-through: window stays non-interactive except over ".hit" elements.
+// The duck's clickable area is now just duckHit's own rect (it IS the
+// visual now, no separate full-screen canvas to hit-test against).
 // ---------------------------------------------------------------------
 let lastInteractive = null;
-window.addEventListener("mousemove", (e) => {
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const interactive = !!(el && el.closest(".hit"));
+function updateWindowHitTest(x, y){
+  // duckHit's on-screen box only moves once per rendered frame (physicsFrame's
+  // rAF), while raw mousemove during a fast fling/shake can outrun that by a
+  // wide margin. Re-checking elementFromPoint against that stale box here could
+  // find the cursor "outside" duckHit mid-drag and flip the window back to
+  // click-through — which then swallows the eventual pointerup and leaves
+  // `dragging`/`.grabbing` stuck forever. While a drag is in progress we
+  // already know the window must stay interactive, so skip re-evaluating.
+  if (dragging) return;
+  const el = document.elementFromPoint(x, y);
+  let interactive = !!(el && el.closest(".hit"));
+  // duckHit is a 190px square, but the drawn duck only fills a duck-shaped
+  // region inside it — its empty corners would otherwise swallow clicks meant
+  // for the desktop next to the duck. Tighten the duck's clickable area to an
+  // ellipse hugging the duck (centered on its live position), so only "the duck
+  // + a sliver of margin" blocks clicks; the corners pass straight through.
+  if (interactive && el.closest("#duckHit")){
+    const dx = (x - renderX) / DUCK_HIT_RX;
+    const dy = (y - renderY) / DUCK_HIT_RY;
+    if (dx * dx + dy * dy > 1) interactive = false;
+  }
   if (interactive !== lastInteractive){
     lastInteractive = interactive;
     window.duckAPI.setIgnoreMouseEvents(!interactive, { forward: true });
   }
-});
+}
+window.addEventListener("mousemove", (e) => { updateWindowHitTest(e.clientX, e.clientY); });
 
-// ---------------------------------------------------------------------
-// three.js: a smooth rubber-duck-toy shape floating over the desktop
-// ---------------------------------------------------------------------
 let W = window.innerWidth, H = window.innerHeight;
-const canvas = document.getElementById("three");
-const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-renderer.setClearColor(0x000000, 0);
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.setSize(W, H);
-
-const scene = new THREE.Scene();
-const camera = new THREE.OrthographicCamera(0, W, 0, H, -1000, 1000);
-camera.position.z = 500;
-
-scene.add(new THREE.AmbientLight(0xffffff, 1.5));
-const keyLight = new THREE.DirectionalLight(0xffffff, 1.5);
-keyLight.position.set(120, -180, 260);
-scene.add(keyLight);
-const fillLight = new THREE.DirectionalLight(0xbcdfff, 0.55);
-fillLight.position.set(-160, 120, 120);
-scene.add(fillLight);
-
-function matte(color){ return new THREE.MeshLambertMaterial({ color, flatShading: false }); }
-
-const SCALE = 1.55;
-const BR = 42 * SCALE;
-const duck = new THREE.Group();
-
-// squashGroup carries every reaction-driven deformation (uniform pulse AND
-// real non-uniform squash/stretch). It's a child of `duck`, so a squash
-// axis is always relative to the duck's OWN body, not the screen — it
-// stays correct no matter what duckYaw currently is, no shearing.
-const squashGroup = new THREE.Group();
-duck.add(squashGroup);
-const partGroup = new THREE.Group();
-squashGroup.add(partGroup);
+function resize(){ W = window.innerWidth; H = window.innerHeight; }
+window.addEventListener("resize", resize);
 
 // ---------------------------------------------------------------------
-// customizable parts: 14 independent slots, each a simple primitive whose
-// shape + color you unlock by leveling up (see the XP/customize system
-// further down). Positions are fixed anchors so parts always "attach" in
-// roughly the right place no matter what shape is plugged into them.
+// 17 independent skin tracks. Each skin is just a {value,label,icon} —
+// the actual drawing lives in PART_DRAWERS below, keyed by track id then
+// skin value. Keeping the catalog and the drawing separate means leveling/
+// XP/save-data logic never needs to know anything about SVG shapes.
 // ---------------------------------------------------------------------
-const SHAPES = [
-  { id: "sphere", label: "구", make: (s) => new THREE.SphereGeometry(s, 22, 16) },
-  { id: "box", label: "상자", make: (s) => new THREE.BoxGeometry(s * 1.5, s * 1.5, s * 1.5) },
-  { id: "cone", label: "원뿔", make: (s) => new THREE.ConeGeometry(s, s * 1.7, 20) },
-  { id: "cylinder", label: "원통", make: (s) => new THREE.CylinderGeometry(s * 0.82, s * 0.82, s * 1.5, 20) },
-  { id: "octahedron", label: "팔면체", make: (s) => new THREE.OctahedronGeometry(s, 0) },
-  { id: "torus", label: "고리", make: (s) => new THREE.TorusGeometry(s * 0.7, s * 0.28, 10, 20) },
-  { id: "capsule", label: "캡슐", make: (s) => new THREE.CapsuleGeometry(s * 0.58, s * 0.7, 6, 16) }
-];
-const COLORS = [0xffcb3d, 0xff8a5b, 0x6ec6ff, 0x8effa0, 0xff6ec7, 0xc79bff, 0xfff275, 0x4a4a4a];
-const MAX_LEVEL = Math.min(SHAPES.length, COLORS.length) - 1;
+const TRACK_COLORS = [0xffcb3d, 0xff8a5b, 0x6ec6ff, 0x8effa0, 0xff6ec7, 0xc79bff, 0xfff275];
 
-// naturalColor is each part's sensible real-world default (eyes are dark,
-// a bill is orange, ...) — always available at "slot 0", regardless of
-// level. Leveling up ADDS alternative colors/shapes on top of this; it
-// never removes or overrides the sensible default. Without this, every
-// part defaulted to the same shared color and the whole duck read as one
-// undifferentiated yellow blob.
-const PARTS = [
-  { id: "head", label: "머리", pos: [0, -BR * 0.86, BR * 0.28], size: BR * 0.5, naturalColor: 0xffcb3d },
-  { id: "body", label: "몸통", pos: [0, 0, 0], size: BR, scale: [1, 0.86, 0.9], naturalColor: 0xffcb3d },
-  { id: "bill", label: "부리", pos: [0, -BR * 0.71, BR * 0.81], size: BR * 0.28, scale: [1.2, 0.45, 0.9], naturalColor: 0xff8a4a },
-  { id: "eyeL", label: "왼쪽 눈", pos: [BR * 0.31, -BR * 1.0, BR * 0.66], size: BR * 0.07, naturalColor: 0x22201c },
-  { id: "eyeR", label: "오른쪽 눈", pos: [-BR * 0.31, -BR * 1.0, BR * 0.66], size: BR * 0.07, naturalColor: 0x22201c },
-  { id: "wingL", label: "왼쪽 날개", pos: [BR * 1.04, BR * 0.05, -BR * 0.02], size: BR * 0.3, scale: [0.42, 1.05, 0.62], naturalColor: 0xe9a52e },
-  { id: "wingR", label: "오른쪽 날개", pos: [-BR * 1.04, BR * 0.05, -BR * 0.02], size: BR * 0.3, scale: [0.42, 1.05, 0.62], naturalColor: 0xe9a52e },
-  { id: "legL", label: "왼쪽 다리", pos: [BR * 0.32, BR * 0.78, BR * 0.1], size: BR * 0.1, scale: [1, 1.6, 1], naturalColor: 0xff8a4a },
-  { id: "legR", label: "오른쪽 다리", pos: [-BR * 0.32, BR * 0.78, BR * 0.1], size: BR * 0.1, scale: [1, 1.6, 1], naturalColor: 0xff8a4a },
-  { id: "footL", label: "왼쪽 발", pos: [BR * 0.34, BR * 0.98, BR * 0.28], size: BR * 0.16, scale: [1, 0.5, 1.3], naturalColor: 0xff8a4a },
-  { id: "footR", label: "오른쪽 발", pos: [-BR * 0.34, BR * 0.98, BR * 0.28], size: BR * 0.16, scale: [1, 0.5, 1.3], naturalColor: 0xff8a4a },
-  { id: "tail", label: "꼬리", pos: [0, -BR * 0.08, -BR * 0.92], size: BR * 0.2, naturalColor: 0xe9a52e },
-  { id: "blush", label: "볼터치", pos: [BR * 0.5, -BR * 0.78, BR * 0.5], size: BR * 0.12, scale: [0.35, 0.7, 0.7], naturalColor: 0xff8f6b, hiddenAtZero: true },
-  { id: "crest", label: "머리 장식", pos: [0, -BR * 1.38, BR * 0.08], size: BR * 0.16, naturalColor: 0xffcb3d, hiddenAtZero: true }
+function skin(value, label, icon){ return { value, label, icon }; }
+function track(id, label, slotIcon, naturalColor, skins){
+  return { id, label, slotIcon, naturalColor, skins, maxLevel: skins.length - 1, colors: TRACK_COLORS };
+}
+
+const wardrobeTracks = [
+  track("head", "머리", "◉", 0xffcb3d, [skin("classic","기본 머리","●"), skin("round","동글 머리","◉"), skin("bean","콩알 머리","◔"), skin("fluffy","복슬 머리","✿"), skin("royal","로열 머리","✦")]),
+  track("body", "몸통", "●", 0xffcb3d, [skin("classic","기본 몸통","●"), skin("bean","콩 오리","◔"), skin("plush","인형 오리","◉"), skin("storybook","동화 오리","✦"), skin("royal","로열 오리","♛")]),
+  track("bill", "부리", "◆", 0xff8a4a, [skin("classic","기본 부리","◆"), skin("tiny","아기 부리","◒"), skin("wide","넓적 부리","▬"), skin("smile","웃는 부리","⌣"), skin("heart","하트 부리","♥")]),
+  track("eyeL", "왼쪽 눈", "◉", 0x221d18, [skin("sweet","초롱 눈","◉"), skin("sleepy","졸린 눈","◐"), skin("star","별빛 눈","✧"), skin("wink","윙크","⌒"), skin("glasses","안경 눈","▢")]),
+  track("eyeR", "오른쪽 눈", "◉", 0x221d18, [skin("sweet","초롱 눈","◉"), skin("sleepy","졸린 눈","◐"), skin("star","별빛 눈","✧"), skin("wink","윙크","⌒"), skin("glasses","안경 눈","▢")]),
+  track("wingL", "왼쪽 날개", "◖", 0xe9a52e, [skin("classic","기본 날개","◖"), skin("tiny","짧은 날개","◒"), skin("fluffy","복슬 날개","✿"), skin("cape","망토 날개","〰"), skin("angel","천사 날개","♢")]),
+  track("wingR", "오른쪽 날개", "◗", 0xe9a52e, [skin("classic","기본 날개","◗"), skin("tiny","짧은 날개","◒"), skin("fluffy","복슬 날개","✿"), skin("cape","망토 날개","〰"), skin("angel","천사 날개","♢")]),
+  track("legL", "왼쪽 다리", "│", 0xff8a4a, [skin("classic","기본 다리","│"), skin("short","짧은 다리","╵"), skin("sock","양말","▥"), skin("boot","부츠","▣")]),
+  track("legR", "오른쪽 다리", "│", 0xff8a4a, [skin("classic","기본 다리","│"), skin("short","짧은 다리","╵"), skin("sock","양말","▥"), skin("boot","부츠","▣")]),
+  track("footL", "왼쪽 발", "◢", 0xff8a4a, [skin("classic","기본 발","◢"), skin("round","동글 발","●"), skin("sneaker","운동화","▰"), skin("boot","장화","▣")]),
+  track("footR", "오른쪽 발", "◣", 0xff8a4a, [skin("classic","기본 발","◣"), skin("round","동글 발","●"), skin("sneaker","운동화","▰"), skin("boot","장화","▣")]),
+  track("tail", "꼬리", "◆", 0xe9a52e, [skin("classic","기본 꼬리","◆"), skin("round","방울 꼬리","●"), skin("ribbon","리본 꼬리","∞"), skin("fan","부채 꼬리","♢"), skin("sparkle","별 꼬리","✦")]),
+  track("blush", "볼터치", "●", 0xff9a82, [skin("none","없음","·"), skin("soft","은은 볼","●"), skin("round","동글 볼","◉"), skin("heart","하트 볼","♥")]),
+  track("crest", "머리 장식", "♛", 0xffc84f, [skin("none","없음","·"), skin("cap","모자","⌂"), skin("beanie","비니","◠"), skin("halo","후광","◌"), skin("crown","왕관","♛"), skin("beret","베레모","◔")]),
+  track("outfit", "의상", "▤", 0xff8a5b, [skin("none","없음","·"), skin("scarf","목도리","≈"), skin("hoodie","후드","⌂"), skin("raincoat","우비","☂"), skin("cape","망토","〰"), skin("sweater","스웨터","▤"), skin("sailor","세일러","⚓")]),
+  track("back", "등 장식", "▣", 0xffd76f, [skin("none","없음","·"), skin("tailBow","큰 리본","∞"), skin("sparkles","반짝이","✧"), skin("backpack","백팩","▣"), skin("ribbon","긴 리본","〰"), skin("shell","조개 등껍질","◠")]),
+  track("finish", "재질", "✧", 0xffcb3d, [skin("soft","매트","·"), skin("plush","봉제 인형","◍"), skin("gloss","장난감 광택","◌"), skin("pearl","진주 광택","✺"), skin("iridescent","오로라","✧"), skin("neon","네온","▣")])
 ];
 
-function colorForChoice(def, idx){ return idx === 0 ? def.naturalColor : COLORS[idx - 1]; }
+function trackMax(def){ return Math.max(0, def.skins.length - 1); }
+function currentSkin(def, st){ return def.skins[Math.min(st.shapeIdx, def.skins.length - 1)] || def.skins[0]; }
+function trackLevel(def, st){ return Math.min(st.level, trackMax(def)); }
+function colorForChoice(def, idx){
+  if (idx === 0) return def.naturalColor;
+  return def.colors[(idx - 1) % def.colors.length];
+}
 
 let partState = {};
-try { partState = JSON.parse(localStorage.getItem("duckParts") || "{}"); } catch (e) { partState = {}; }
+try { partState = JSON.parse(localStorage.getItem("duckWardrobe") || "{}"); } catch (e) { partState = {}; }
+// declared here (not down in the settings section) because buildDuckStyle()
+// reads it and gets called by the very first rebuildDuck() below — a `let`
+// declared later would leave it in the temporal dead zone at that point
+let duckCodeValue = localStorage.getItem("duckCode") || "";
 function partOf(id){ return partState[id] || (partState[id] = { level: 0, shapeIdx: 0, colorIdx: 0 }); }
-function savePartState(){ localStorage.setItem("duckParts", JSON.stringify(partState)); }
+function saveWardrobeState(){ localStorage.setItem("duckWardrobe", JSON.stringify(partState)); }
+function allTracksMaxed(){ return wardrobeTracks.every((def) => trackLevel(def, partOf(def.id)) >= trackMax(def)); }
 
-// shared XP pool — earned by asking questions and by double-click reactions,
-// spent (a skill-tree style choice, not auto-applied) on leveling up
-// whichever parts you want. costForLevel(L) = XP needed to reach level L
-// from L-1.
+function toColor(value, fallback){
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string"){
+    const m = /^#?([0-9a-f]{6})$/i.exec(value.trim());
+    if (m) return parseInt(m[1], 16);
+  }
+  return fallback;
+}
+function mergeDuckCode(style, raw){
+  if (!raw || typeof raw !== "object" || !raw.palette || typeof raw.palette !== "object") return;
+  const p = raw.palette;
+  ["primary","belly","accent","shadow","ink","blush","trim"].forEach((k) => {
+    if (p[k] != null) style.palette[k] = toColor(p[k], style.palette[k]);
+  });
+}
+
+const SKIN_TEMPLATE = { palette: { primary: "#ffcf4a", belly: "#fff0bd", accent: "#ff8a5b" } };
+
+// current chosen skin value + any color override, per track — this is the
+// single source of truth `buildDuckStyle()` reads to know what to draw
+function buildDuckStyle(){
+  const style = {
+    palette: { primary: 0xffcb3d, belly: 0xfff2b8, accent: 0xff8a5b, shadow: 0xe2aa2d, ink: 0x221d18, blush: 0xff9a82, trim: 0xffffff },
+    parts: {}, partColors: {}
+  };
+  wardrobeTracks.forEach((def) => {
+    const st = partOf(def.id);
+    style.parts[def.id] = currentSkin(def, st).value;
+    const colorIdx = Math.min(st.colorIdx, trackMax(def));
+    if (colorIdx > 0) style.partColors[def.id] = colorForChoice(def, colorIdx);
+  });
+  if (allTracksMaxed() && duckCodeValue.trim()){
+    try { mergeDuckCode(style, JSON.parse(duckCodeValue)); } catch (e) { /* keep wardrobe style */ }
+  }
+  return style;
+}
+function partColor(style, id, fallback){
+  return style.partColors[id] != null ? style.partColors[id] : fallback;
+}
+
+// ---------------------------------------------------------------------
+// the actual drawing — every track's skins as flat vector shapes on a
+// -100..100 canvas. No depth, no lighting, no material system: a shape
+// either draws correctly or it doesn't, so this class of "looks broken /
+// see-through / breaks on skin swap" bug simply cannot happen here.
+// ---------------------------------------------------------------------
+function circle(cx, cy, r, fill){ return sv("circle", { cx, cy, r, fill }); }
+function ellipse(cx, cy, rx, ry, fill, rot){
+  const e = sv("ellipse", { cx: 0, cy: 0, rx, ry, fill });
+  e.setAttribute("transform", "translate(" + cx + " " + cy + ")" + (rot ? " rotate(" + rot + ")" : ""));
+  return e;
+}
+function path(d, fill){ return sv("path", { d, fill }); }
+function rrect(cx, cy, w, h, r, fill, rot){
+  const g = sv("rect", { x: -w / 2, y: -h / 2, width: w, height: h, rx: r, fill });
+  g.setAttribute("transform", "translate(" + cx + " " + cy + ")" + (rot ? " rotate(" + rot + ")" : ""));
+  return g;
+}
+
+// coordinate plan (viewBox -100..100, y-down): body sits low-center, head
+// is offset well above it so it reads as its own attached shape rather than
+// overlapping the body — the original bug here was drawing the head at the
+// same anchor as the body, which buried the head and left eyes/bill/crest
+// (all anchored assuming a raised head) floating in empty space above it.
+const HEAD_CY = -34, BODY_CY = 24;
+
+const PART_DRAWERS = {
+  head: (g, val, c) => {
+    c = hexCss(c);
+    if (val === "bean") g.appendChild(ellipse(0, HEAD_CY + 2, 26, 34, c));
+    else if (val === "round") g.appendChild(circle(0, HEAD_CY, 33, c));
+    else g.appendChild(circle(0, HEAD_CY, 30, c));
+    if (val === "fluffy") [-13, 0, 13].forEach((dx) => g.appendChild(circle(dx, HEAD_CY - 26, 7, c)));
+    if (val === "royal") g.appendChild(path(starPath(0, HEAD_CY - 36, 7), "#fff7d6"));
+  },
+  body: (g, val, c) => {
+    c = hexCss(c);
+    if (val === "bean") g.appendChild(ellipse(0, BODY_CY + 4, 44, 50, c));
+    else if (val === "plush") g.appendChild(ellipse(0, BODY_CY, 49, 44, c));
+    else if (val === "storybook") { g.appendChild(ellipse(0, BODY_CY, 48, 42, c)); [[-20,10],[18,24],[-6,34]].forEach((p) => g.appendChild(circle(p[0], p[1], 3.2, "#fff7e2"))); }
+    else if (val === "royal") { g.appendChild(ellipse(0, BODY_CY, 48, 42, c)); g.appendChild(path(starPath(-36, 4, 6), "#fff7d6")); g.appendChild(path(starPath(34, 0, 5), "#fff7d6")); }
+    else g.appendChild(ellipse(0, BODY_CY, 48, 42, c));
+  },
+  bill: (g, val, c) => {
+    c = hexCss(c);
+    const w = val === "tiny" ? 18 : val === "wide" ? 38 : 26;
+    const h = val === "tiny" ? 9 : 13;
+    const cy = HEAD_CY + 26;
+    g.appendChild(rrect(0, cy, w, h, h / 2, c));
+    if (val === "smile") g.appendChild(sv("path", { d: "M -7 " + (cy + 5) + " Q 0 " + (cy + 11) + " 7 " + (cy + 5), stroke: "#7a4a1a", "stroke-width": 1.6, fill: "none", "stroke-linecap": "round" }));
+    if (val === "heart"){ g.appendChild(circle(-4, cy - 6, 4.2, c)); g.appendChild(circle(4, cy - 6, 4.2, c)); }
+  },
+  eyeL: (g, val, c, pupil) => drawEye(g, val, c, pupil, -12),
+  eyeR: (g, val, c, pupil) => drawEye(g, val, c, pupil, 12),
+  wingL: (g, val, c) => drawWing(g, val, c, -1),
+  wingR: (g, val, c) => drawWing(g, val, c, 1),
+  legL: (g, val, c) => drawLeg(g, val, c, -1),
+  legR: (g, val, c) => drawLeg(g, val, c, 1),
+  footL: (g, val, c) => drawFoot(g, val, c, -1),
+  footR: (g, val, c) => drawFoot(g, val, c, 1),
+  tail: (g, val, c) => {
+    c = hexCss(c);
+    const cy = BODY_CY + 30;
+    if (val === "round") g.appendChild(circle(0, cy, 9, c));
+    else if (val === "ribbon") g.appendChild(path("M -12 " + cy + " Q 0 " + (cy - 8) + " 0 " + cy + " Q 0 " + (cy - 8) + " 12 " + cy + " Q 0 " + (cy + 8) + " 0 " + cy + " Q 0 " + (cy + 8) + " -12 " + cy + " Z", c));
+    else if (val === "fan") { for (let i = -1; i <= 1; i++) g.appendChild(ellipse(i * 8, cy + 2, 6, 12, c, i * 22)); }
+    else if (val === "sparkle") g.appendChild(path(starPath(0, cy - 2, 10), c));
+    else g.appendChild(path("M -8 " + (cy - 6) + " L 8 " + (cy - 6) + " L 0 " + (cy + 8) + " Z", c));
+  },
+  blush: (g, val, c) => {
+    if (val === "none") return;
+    c = hexCss(c);
+    const r = val === "round" ? 8 : val === "heart" ? 7 : 6;
+    [-20, 20].forEach((dx) => {
+      const e = ellipse(dx, HEAD_CY + 14, r, r * 0.72, c);
+      e.setAttribute("opacity", "0.55");
+      g.appendChild(e);
+    });
+  },
+  crest: (g, val, c) => {
+    if (val === "none") return;
+    c = hexCss(c);
+    const top = HEAD_CY - 30;
+    if (val === "cap"){ g.appendChild(rrect(0, top, 40, 15, 7, c)); g.appendChild(rrect(4, top + 7, 46, 7, 3.5, c)); }
+    else if (val === "beanie"){ g.appendChild(ellipse(0, top - 2, 22, 16, c)); g.appendChild(circle(0, top - 16, 5, "#fff")); }
+    else if (val === "halo") g.appendChild(sv("ellipse", { cx: 0, cy: top - 18, rx: 16, ry: 5, fill: "none", stroke: "#fff7d6", "stroke-width": 4 }));
+    else if (val === "crown") g.appendChild(path(crownPath(0, top + 4, 36, 18), c));
+    else if (val === "beret") g.appendChild(ellipse(2, top - 2, 24, 13, c, -10));
+  },
+  outfit: (g, val, c) => {
+    if (val === "none") return;
+    c = hexCss(c);
+    const neckY = BODY_CY - 18;
+    if (val === "scarf"){ g.appendChild(rrect(0, neckY, 54, 12, 6, c)); g.appendChild(rrect(16, neckY + 16, 11, 18, 4, c, 12)); }
+    else if (val === "hoodie") g.appendChild(ellipse(0, neckY, 34, 15, c));
+    else if (val === "raincoat") g.appendChild(ellipse(0, BODY_CY + 16, 44, 28, c));
+    else if (val === "cape") g.appendChild(path("M -36 " + neckY + " Q 0 " + (BODY_CY + 56) + " 36 " + neckY + " Q 18 " + (BODY_CY + 4) + " 0 " + (BODY_CY + 2) + " Q -18 " + (BODY_CY + 4) + " -36 " + neckY + " Z", c));
+    else if (val === "sweater"){ g.appendChild(ellipse(0, BODY_CY + 8, 42, 24, c)); g.appendChild(rrect(0, neckY, 48, 10, 5, c)); }
+    else if (val === "sailor"){ g.appendChild(rrect(0, neckY, 52, 15, 4, c)); g.appendChild(rrect(0, neckY, 38, 5, 2, "#fff")); }
+  },
+  back: (g, val, c) => {
+    if (val === "none") return;
+    c = hexCss(c);
+    const cy = BODY_CY + 12;
+    if (val === "tailBow") g.appendChild(path("M -14 " + cy + " Q 0 " + (cy - 8) + " 0 " + cy + " Q 0 " + (cy - 8) + " 14 " + cy + " Q 0 " + (cy + 8) + " 0 " + cy + " Q 0 " + (cy + 8) + " -14 " + cy + " Z", c));
+    else if (val === "sparkles") [[-42,-10],[-36,-24],[40,-6],[34,-22]].forEach((p) => g.appendChild(path(starPath(p[0], BODY_CY + p[1] + 24, 4.5), c)));
+    else if (val === "backpack") g.appendChild(rrect(0, cy, 28, 38, 10, c));
+    else if (val === "ribbon") g.appendChild(rrect(0, cy + 10, 6, 42, 3, c));
+    else if (val === "shell") g.appendChild(ellipse(0, cy + 8, 19, 13, c));
+  },
+  finish: () => {} // handled separately as a whole-duck overlay, see applyFinish()
+};
+
+function drawEye(g, val, c, pupil, side){
+  const cx = side, cy = HEAD_CY - 4;
+  if (val === "sleepy" || val === "wink"){
+    const p = sv("path", { d: "M " + (cx - 7) + " " + cy + " Q " + cx + " " + (cy + 5) + " " + (cx + 7) + " " + cy, stroke: hexCss(c), "stroke-width": 2.6, fill: "none", "stroke-linecap": "round" });
+    g.appendChild(p);
+    return;
+  }
+  if (val === "glasses"){
+    g.appendChild(sv("circle", { cx, cy, r: 6.5, fill: "none", stroke: hexCss(c), "stroke-width": 2 }));
+    g.appendChild(circle(cx, cy, 2.4, hexCss(pupil)));
+    return;
+  }
+  if (val === "star"){
+    g.appendChild(path(starPath(cx, cy, 6.5), hexCss(c)));
+    g.appendChild(circle(cx, cy + 1, 1.8, hexCss(pupil)));
+    return;
+  }
+  g.appendChild(circle(cx, cy, 5.8, hexCss(c)));
+  g.appendChild(circle(cx + 1.5, cy - 1.5, 2, "#fff"));
+}
+function drawWing(g, val, c, side){
+  const cx = side * 50, cy = BODY_CY - 2;
+  const wg = sv("g", {});
+  if (val === "cape") wg.appendChild(path("M " + (side * -12) + " -22 L " + (side * 12) + " 0 L " + (side * -8) + " 26 Z", hexCss(c)));
+  else if (val === "angel"){ [-10, 0, 10].forEach((dy) => wg.appendChild(ellipse(0, dy, 9, 15, "#fff8ef"))); }
+  else if (val === "fluffy"){ wg.appendChild(ellipse(0, 0, 11, 20, hexCss(c))); [-13, 0, 13].forEach((dy) => wg.appendChild(circle(side * 5, dy, 4.5, hexCss(c)))); }
+  else if (val === "tiny") wg.appendChild(ellipse(0, 0, 7, 13, hexCss(c)));
+  else wg.appendChild(ellipse(0, 0, 11, 22, hexCss(c)));
+  wg.setAttribute("transform", "translate(" + cx + " " + cy + ") rotate(" + (side * 14) + ")");
+  g.appendChild(wg);
+  return wg;
+}
+function drawLeg(g, val, c, side){
+  const h = val === "short" ? 13 : 18;
+  const cy = BODY_CY + 42 + h / 2;
+  g.appendChild(rrect(side * 15, cy, 7, h, 3.5, hexCss(c)));
+  if (val === "sock") g.appendChild(rrect(side * 15, cy + h / 2 - 3, 8, 7, 3, "#fff"));
+  if (val === "boot") g.appendChild(rrect(side * 15, cy + h / 2 + 1, 10, 8, 3, "#4a4038"));
+}
+function drawFoot(g, val, c, side){
+  const cx = side * 16, cy = BODY_CY + 62;
+  if (val === "round") g.appendChild(circle(cx, cy, 7.5, hexCss(c)));
+  else if (val === "sneaker"){ g.appendChild(rrect(cx, cy, 19, 9, 4.5, "#fff")); g.appendChild(rrect(cx, cy + 3, 19, 3, 1.5, hexCss(c))); }
+  else if (val === "boot") g.appendChild(rrect(cx, cy, 15, 11, 4, "#4a4038"));
+  else g.appendChild(ellipse(cx, cy, 10, 5.5, hexCss(c), side * 8));
+}
+
+const FINISH_DEFS = {}; // per-svg <defs> filter cache, keyed by svg element
+function ensureFinishDefs(svgEl){
+  if (FINISH_DEFS[svgEl.id]) return FINISH_DEFS[svgEl.id];
+  const defs = sv("defs", {});
+  const glow = sv("filter", { id: svgEl.id + "-glow", x: "-60%", y: "-60%", width: "220%", height: "220%" });
+  glow.appendChild(sv("feGaussianBlur", { stdDeviation: 4, result: "blur" }));
+  const merge = sv("feMerge", {});
+  merge.appendChild(sv("feMergeNode", { in: "blur" }));
+  merge.appendChild(sv("feMergeNode", { in: "SourceGraphic" }));
+  glow.appendChild(merge);
+  defs.appendChild(glow);
+  svgEl.appendChild(defs);
+  FINISH_DEFS[svgEl.id] = { glowId: svgEl.id + "-glow" };
+  return FINISH_DEFS[svgEl.id];
+}
+// "재질" doesn't get its own silhouette — it's a finish applied on top of
+// the whole duck, same spirit as the old PBR material but expressed as
+// plain SVG (highlight ellipse / gradient sheen / glow), so it can never
+// hit the "PBR material with no environment map" trap that broke the 3D version
+function applyFinish(svgEl, root, val, accentColor){
+  if (val === "gloss" || val === "pearl" || val === "iridescent"){
+    const shine = ellipse(-14, BODY_CY - 20, 16, 10, "#ffffff");
+    shine.setAttribute("opacity", val === "pearl" ? "0.5" : "0.38");
+    root.appendChild(shine);
+  }
+  if (val === "neon"){
+    const defs = ensureFinishDefs(svgEl);
+    root.setAttribute("filter", "url(#" + defs.glowId + ")");
+    const ring = sv("ellipse", { cx: 0, cy: BODY_CY, rx: 50, ry: 44, fill: "none", stroke: hexCss(accentColor), "stroke-width": 3, opacity: 0.55 });
+    root.appendChild(ring);
+  } else {
+    root.removeAttribute("filter");
+  }
+}
+
+const partEls = {}; // trackId -> <g>, populated by the last renderDuck() call on the MAIN duck only
+function renderDuck(svgEl, style, trackMeshes){
+  clearEl(svgEl);
+  const root = sv("g", { id: "duckRoot" });
+  svgEl.appendChild(root);
+
+  // draw order back-to-front: decorations behind, then legs, body, outfit,
+  // wings, head/face, blush, crest, feet on top
+  const order = ["back", "tail", "legL", "legR", "body", "outfit", "wingL", "wingR", "head", "bill", "eyeL", "eyeR", "blush", "crest", "footL", "footR"];
+  order.forEach((id) => {
+    const g = sv("g", { "data-track": id });
+    const drawer = PART_DRAWERS[id];
+    const color = id === "eyeL" || id === "eyeR" ? partColor(style, id, style.palette.ink)
+      : id === "bill" || id === "legL" || id === "legR" || id === "footL" || id === "footR" || id === "tail" ? partColor(style, id, style.palette.accent)
+      : id === "wingL" || id === "wingR" ? partColor(style, id, style.palette.shadow)
+      : id === "blush" ? partColor(style, id, style.palette.blush)
+      : partColor(style, id, style.palette.primary);
+    if (drawer){
+      // every drawer receives the color as a raw number and calls hexCss()
+      // itself where a string is actually needed — passing an already-
+      // stringified color into a drawer that also calls hexCss() on it
+      // corrupts it (hexCss("#ff8a5b") coerces the string to NaN -> black)
+      drawer(g, style.parts[id], color, style.palette.ink);
+    }
+    root.appendChild(g);
+    if (trackMeshes) partEls[id] = g;
+  });
+
+  // belly patch — always drawn, not a track (see CHANGELOG §13 for why it's
+  // small: a large full circle here reads as "a second ball stuck on")
+  const belly = ellipse(0, BODY_CY + 10, 21, 15, hexCss(style.palette.belly));
+  root.insertBefore(belly, root.querySelector('[data-track="outfit"]'));
+
+  applyFinish(svgEl, root, style.parts.finish, style.palette.accent);
+  return root;
+}
+
+function rebuildDuck(){
+  const style = buildDuckStyle();
+  renderDuck(duckSvg, style, true);
+  if (settingsOverlay.classList.contains("open")) renderDuck(previewSvg, style, false);
+}
+
+// ---------------------------------------------------------------------
+// shared XP economy — earned by asking questions and by double-click
+// reactions, spent (skill-tree style) per track via the customize tab.
+// ---------------------------------------------------------------------
 let totalXP = parseInt(localStorage.getItem("duckXP") || "0", 10);
 function costForLevel(level){ return level * 8; }
 const xpHud = document.getElementById("xpHud");
@@ -423,43 +880,12 @@ function addXP(n){
   xpHud.textContent = "✨ " + totalXP + " XP";
   xpHud.classList.add("bump");
   setTimeout(() => xpHud.classList.remove("bump"), 160);
-  if (typeof refreshCustomizeUI === "function") refreshCustomizeUI();
+  if (settingsOverlay.classList.contains("open") && settingsPanel.classList.contains("customizeMode")) refreshWardrobeUI();
 }
 xpHud.addEventListener("click", async () => {
   await openSettings();
   document.querySelector(".tabBtn[data-tab=customize]").click();
 });
-
-const partMeshes = {};
-function rebuildPart(id){
-  const def = PARTS.find((p) => p.id === id);
-  const st = partOf(id);
-  const old = partMeshes[id];
-  if (old){ partGroup.remove(old); old.geometry.dispose(); old.material.dispose(); partMeshes[id] = null; }
-  // a couple of "bonus" slots (blush, head accessory) stay literally absent
-  // until you unlock them — nothing there, then suddenly something appears,
-  // instead of one existing shape quietly changing
-  if (def.hiddenAtZero && st.level === 0) return;
-  const shape = SHAPES[Math.min(st.shapeIdx, SHAPES.length - 1)];
-  const mesh = new THREE.Mesh(shape.make(def.size), matte(colorForChoice(def, Math.min(st.colorIdx, st.level))));
-  mesh.position.set(def.pos[0], def.pos[1], def.pos[2]);
-  if (def.scale) mesh.scale.set(def.scale[0], def.scale[1], def.scale[2]);
-  partMeshes[id] = mesh;
-  partGroup.add(mesh);
-}
-PARTS.forEach((p) => rebuildPart(p.id));
-
-let duckYaw = -Math.PI / 4; // resting pose: facing the viewer, turned ~45° to their left
-duck.rotation.y = duckYaw;
-scene.add(duck);
-
-function resize(){
-  W = window.innerWidth; H = window.innerHeight;
-  camera.right = W; camera.bottom = H;
-  camera.updateProjectionMatrix();
-  renderer.setSize(W, H);
-}
-window.addEventListener("resize", resize);
 
 // ---------------------------------------------------------------------
 // fling-and-settle physics: drag the duck, throw it, it slides + bounces.
@@ -467,8 +893,13 @@ window.addEventListener("resize", resize);
 // across a multi-monitor setup instead of stopping at one screen's edge
 // ---------------------------------------------------------------------
 const duckHit = document.getElementById("duckHit");
+const duckSvg = document.getElementById("duckSvg");
 const quackEl = document.getElementById("quack");
-const HALF = 100;
+const HALF = 95;
+// clickable ellipse hugging the duck inside its 190px box (see
+// updateWindowHitTest): a bit narrower than tall since the duck is taller than
+// wide, leaving the box corners click-through
+const DUCK_HIT_RX = 78, DUCK_HIT_RY = 92;
 
 let curX = W * 0.82, curY = H * 0.78;
 let velX = 0, velY = 0;
@@ -502,32 +933,28 @@ function whooshSound(){ playTone(220,0.22,"sine",0.1); playTone(480,0.18,"sine",
 function boingSound(){ playTone(180,0.24,"triangle",0.16); }
 
 // a big grab-bag of distinct double-click reactions, picked at random
-// (never the same one twice in a row). Squash/stretch is real (non-uniform
-// per-axis scale) but always applied to squashGroup — a child of `duck` —
-// so it deforms relative to the duck's OWN body axes, not the screen.
-// Composing a local non-uniform scale with a separate object's rotation
-// never introduces shear; it only would if a *single* object's own
-// rotating+scaling were driven by world-space axes each frame, which this
-// isn't (see squashGroup comment above).
+// (never the same one twice in a row). All of these are plain 2D
+// scaleX/scaleY + rotate on #duckRoot — no depth axis, so there's no
+// shearing failure mode to guard against like the old 3D squashGroup.
 const EASE_OUT_3 = (p) => 1 - Math.pow(1 - p, 3);
 const EASE_OUT_2 = (p) => 1 - Math.pow(1 - p, 2);
 const PULSE = (p) => Math.sin(p * Math.PI);
 
 const REACTIONS = {
-  hop:        { dur: 0.5, sound: "quack", apply: (p) => ({ bobY: -PULSE(p) * BR * 0.3, sX: 1 + PULSE(p) * 0.12, sY: 1 + PULSE(p) * 0.12, sZ: 1 + PULSE(p) * 0.12 }) },
-  tripleHop:  { dur: 0.8, sound: "trill", apply: (p) => { const s = Math.abs(Math.sin(p * Math.PI * 3)); return { bobY: -s * BR * 0.26, sX: 1 + s * 0.1, sY: 1 + s * 0.1, sZ: 1 + s * 0.1 }; } },
-  spin:       { dur: 0.7, sound: "whoosh", apply: (p) => ({ yawOffset: EASE_OUT_3(p) * Math.PI * 2 }) },
-  bigBounce:  { dur: 0.45, sound: "boing", apply: (p) => ({ bobY: -PULSE(p) * BR * 0.12, sX: 1 + PULSE(p) * 0.42, sY: 1 + PULSE(p) * 0.42, sZ: 1 + PULSE(p) * 0.42 }) },
-  wiggle:     { dur: 0.6, sound: "quack", apply: (p) => ({ tiltExtra: Math.sin(p * Math.PI * 9) * 0.4 * (1 - p) }) },
-  barrelRoll: { dur: 0.8, sound: "whoosh", apply: (p) => ({ tiltExtra: EASE_OUT_2(p) * Math.PI * 2 }) },
-  squishFlat: { dur: 0.5, sound: "boing", apply: (p) => { const s = PULSE(p); return { bobY: s * BR * 0.12, sX: 1 + s * 0.4, sY: 1 - s * 0.38, sZ: 1 + s * 0.32 }; } },
-  stretchTall:{ dur: 0.5, sound: "quack", apply: (p) => { const s = PULSE(p); return { bobY: -s * BR * 0.1, sX: 1 - s * 0.3, sY: 1 + s * 0.42, sZ: 1 - s * 0.26 }; } },
-  grow:       { dur: 0.6, sound: "whoosh", apply: (p) => { const s = 1 + PULSE(p) * 0.6; return { sX: s, sY: s, sZ: s }; } },
-  shrink:     { dur: 0.5, sound: "trill", apply: (p) => { const s = 1 - PULSE(p) * 0.38; return { sX: s, sY: s, sZ: s }; } },
-  jelly:      { dur: 1.0, sound: "boing", apply: (p) => { const decay = (1 - p); const w = Math.sin(p * Math.PI * 6) * decay * 0.32; return { sX: 1 + w, sY: 1 - w, sZ: 1 + w * 0.6 }; } },
-  heartbeat:  { dur: 0.55, sound: "quack", apply: (p) => { const beat = Math.abs(Math.sin(p * Math.PI * 2.4)) * (1 - p * 0.3); const s = 1 + beat * 0.24; return { sX: s, sY: s, sZ: s }; } },
-  sideSquish: { dur: 0.5, sound: "boing", apply: (p) => { const s = PULSE(p); return { sX: 1 - s * 0.34, sY: 1 + s * 0.18, sZ: 1 + s * 0.3 }; } },
-  dizzy:      { dur: 0.9, sound: "trill", apply: (p) => { const decay = (1 - p); return { yawOffset: Math.sin(p * Math.PI * 4) * 0.7 * decay, tiltExtra: Math.cos(p * Math.PI * 3) * 0.3 * decay, sX: 1 + PULSE(p) * 0.15, sY: 1 + PULSE(p) * 0.15, sZ: 1 + PULSE(p) * 0.15 }; } }
+  hop:        { dur: 0.5, sound: "quack", apply: (p) => ({ bobY: -PULSE(p) * 28, sX: 1 + PULSE(p) * 0.12, sY: 1 + PULSE(p) * 0.12 }) },
+  tripleHop:  { dur: 0.8, sound: "trill", apply: (p) => { const s = Math.abs(Math.sin(p * Math.PI * 3)); return { bobY: -s * 24, sX: 1 + s * 0.1, sY: 1 + s * 0.1 }; } },
+  spin:       { dur: 0.7, sound: "whoosh", apply: (p) => ({ rot: EASE_OUT_3(p) * 360 }) },
+  bigBounce:  { dur: 0.45, sound: "boing", apply: (p) => ({ bobY: -PULSE(p) * 10, sX: 1 + PULSE(p) * 0.42, sY: 1 + PULSE(p) * 0.42 }) },
+  wiggle:     { dur: 0.6, sound: "quack", apply: (p) => ({ rot: Math.sin(p * Math.PI * 9) * 14 * (1 - p) }) },
+  barrelRoll: { dur: 0.8, sound: "whoosh", apply: (p) => ({ rot: EASE_OUT_2(p) * 360 }) },
+  squishFlat: { dur: 0.5, sound: "boing", apply: (p) => { const s = PULSE(p); return { bobY: s * 10, sX: 1 + s * 0.4, sY: 1 - s * 0.38 }; } },
+  stretchTall:{ dur: 0.5, sound: "quack", apply: (p) => { const s = PULSE(p); return { bobY: -s * 8, sX: 1 - s * 0.3, sY: 1 + s * 0.42 }; } },
+  grow:       { dur: 0.6, sound: "whoosh", apply: (p) => { const s = 1 + PULSE(p) * 0.5; return { sX: s, sY: s }; } },
+  shrink:     { dur: 0.5, sound: "trill", apply: (p) => { const s = 1 - PULSE(p) * 0.35; return { sX: s, sY: s }; } },
+  jelly:      { dur: 1.0, sound: "boing", apply: (p) => { const decay = (1 - p); const w = Math.sin(p * Math.PI * 6) * decay * 0.3; return { sX: 1 + w, sY: 1 - w }; } },
+  heartbeat:  { dur: 0.55, sound: "quack", apply: (p) => { const beat = Math.abs(Math.sin(p * Math.PI * 2.4)) * (1 - p * 0.3); const s = 1 + beat * 0.2; return { sX: s, sY: s }; } },
+  sideSquish: { dur: 0.5, sound: "boing", apply: (p) => { const s = PULSE(p); return { sX: 1 - s * 0.3, sY: 1 + s * 0.16 }; } },
+  dizzy:      { dur: 0.9, sound: "trill", apply: (p) => { const decay = (1 - p); return { rot: Math.sin(p * Math.PI * 4) * 26 * decay, sX: 1 + PULSE(p) * 0.14, sY: 1 + PULSE(p) * 0.14 }; } }
 };
 const REACTION_KEYS = Object.keys(REACTIONS);
 let lastReaction = null;
@@ -590,6 +1017,7 @@ let clickTimer = null;
 let holdMode = false;
 let holdTimer = null;
 let lastMoveX = 0, lastMoveY = 0;
+let duckSpin = 0; // accumulated free rotation from hold-drag, degrees
 
 duckHit.addEventListener("pointerdown", (e) => {
   duckHit.setPointerCapture(e.pointerId);
@@ -608,7 +1036,7 @@ duckHit.addEventListener("pointermove", (e) => {
   if (!dragging) return;
   lastMoveX = e.clientX; lastMoveY = e.clientY;
   if (holdMode){
-    duckYaw += (e.movementX || 0) * 0.012;
+    duckSpin += (e.movementX || 0) * 0.8;
     return;
   }
   if (Math.hypot(e.clientX - downX, e.clientY - downY) > 6) clearTimeout(holdTimer);
@@ -621,6 +1049,8 @@ duckHit.addEventListener("pointerup", (e) => {
   const wasHold = holdMode;
   holdMode = false;
   duckHit.classList.remove("grabbing");
+  lastInteractive = null;
+  requestAnimationFrame(() => updateWindowHitTest(e.clientX, e.clientY));
   if (wasHold) return;
 
   const dt = performance.now() - downAt;
@@ -635,7 +1065,10 @@ duckHit.addEventListener("pointerup", (e) => {
     }
   }
 });
-duckHit.addEventListener("pointercancel", () => { dragging = false; holdMode = false; clearTimeout(holdTimer); duckHit.classList.remove("grabbing"); });
+duckHit.addEventListener("pointercancel", () => { dragging = false; holdMode = false; clearTimeout(holdTimer); duckHit.classList.remove("grabbing"); lastInteractive = null; });
+// safety net: if pointer capture is ever released without a pointerup/pointercancel
+// reaching us (e.g. the OS/browser force-releases it), don't stay stuck "grabbing"
+duckHit.addEventListener("lostpointercapture", () => { dragging = false; holdMode = false; clearTimeout(holdTimer); duckHit.classList.remove("grabbing"); lastInteractive = null; });
 
 const FRICTION = 0.965;
 let t0 = performance.now();
@@ -664,12 +1097,17 @@ function physicsFrame(now){
   duckHit.style.left = (renderX - HALF) + "px";
   duckHit.style.top = (renderY - HALF) + "px";
 
-  const tiltAngle = Math.atan2(velY, velX || 0.0001);
+  // XP 배지 — 오리 바로 아래를 따라다님
+  const xpW = xpHud.offsetWidth || 70;
+  xpHud.style.left = clamp(renderX - xpW / 2, 8, W - xpW - 8) + "px";
+  xpHud.style.top = clamp(renderY + HALF + 10, 8, H - 34) + "px";
+
+  const tiltAngle = Math.atan2(velY, velX || 0.0001) * (180 / Math.PI);
 
   bouncePulse *= REDUCE ? 0 : 0.86;
   const s = 1 + bouncePulse * 0.22;
 
-  let reactBob = 0, reactYawOffset = 0, reactTiltExtra = 0, sX = 1, sY = 1, sZ = 1;
+  let reactBob = 0, reactRot = 0, sX = 1, sY = 1;
   if (reaction){
     const t = (now - reaction.start) / 1000;
     const def = REACTIONS[reaction.type];
@@ -679,26 +1117,33 @@ function physicsFrame(now){
     } else {
       const r = def.apply(t / dur);
       reactBob = r.bobY || 0;
-      reactYawOffset = r.yawOffset || 0;
-      reactTiltExtra = r.tiltExtra || 0;
+      reactRot = r.rot || 0;
       sX = r.sX != null ? r.sX : 1;
       sY = r.sY != null ? r.sY : 1;
-      sZ = r.sZ != null ? r.sZ : 1;
     }
   }
-  if (REDUCE){ sX = 1; sY = 1; sZ = 1; reactBob = 0; reactYawOffset = 0; reactTiltExtra = 0; }
+  if (REDUCE){ sX = 1; sY = 1; reactBob = 0; reactRot = 0; }
 
-  duck.position.set(renderX, renderY + reactBob, 0);
-  duck.rotation.z = (REDUCE || holdMode ? 0 : tiltAngle * 0.2) + reactTiltExtra;
-  duck.rotation.y = duckYaw + reactYawOffset;
-  squashGroup.scale.set(s * sX, s * sY, s * sZ);
+  const tilt = (REDUCE || holdMode) ? 0 : tiltAngle * 0.12;
+  const rot = duckSpin + tilt + reactRot;
+  const root = duckSvg.firstElementChild; // #duckRoot
+  if (root){
+    root.setAttribute("transform", "translate(0 " + reactBob + ") rotate(" + rot + ") scale(" + (s * sX) + " " + (s * sY) + ")");
+    // 날개 파닥이기 — speed가 높을수록 더 빠르고 크게, 기본 자세 위에 더해짐
+    const wingFlap = Math.sin((now - t0) * 0.006 * Math.max(1, speed * 0.3)) * Math.min(22, speed * 4);
+    const wingCy = BODY_CY - 2;
+    if (partEls.wingL) partEls.wingL.firstElementChild && partEls.wingL.firstElementChild.setAttribute("transform", "translate(-50 " + wingCy + ") rotate(" + (-14 - wingFlap * 0.6) + ")");
+    if (partEls.wingR) partEls.wingR.firstElementChild && partEls.wingR.firstElementChild.setAttribute("transform", "translate(50 " + wingCy + ") rotate(" + (14 + wingFlap * 0.6) + ")");
+  }
 
   if (chatBubble.classList.contains("open")) positionBubble();
 
-  renderer.render(scene, camera);
   requestAnimationFrame(physicsFrame);
 }
-requestAnimationFrame(physicsFrame);
+// first call deferred to the end of this script (see bottom) — rebuildDuck()
+// and physicsFrame() both reach forward into consts declared further down
+// (settingsOverlay, chatBubble, ...), which would throw a temporal-dead-zone
+// ReferenceError if invoked before the script finishes evaluating top to bottom
 
 // ---------------------------------------------------------------------
 // speech-bubble chat: no modal — the duck talks back in place
@@ -729,7 +1174,6 @@ const chatBubble = document.getElementById("chatBubble");
 const closeBtn = document.getElementById("closeBtn");
 const msgArea = document.getElementById("msgArea");
 const problem = document.getElementById("problem");
-const countEl = document.getElementById("count");
 const thoughtBubble = document.getElementById("thoughtBubble");
 const thoughtLinks = document.getElementById("thoughtLinks");
 const thoughtDots = [
@@ -737,21 +1181,6 @@ const thoughtDots = [
   document.getElementById("thoughtDot2"),
   document.getElementById("thoughtDot3")
 ];
-
-function todayKey(){
-  const d = new Date();
-  return "duckCount_" + d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
-}
-function bumpCount(){
-  const key = todayKey();
-  const n = parseInt(localStorage.getItem(key) || "0", 10) + 1;
-  localStorage.setItem(key, String(n));
-  countEl.textContent = "오늘 오리한테 " + n + "번 상담함";
-}
-(function initCount(){
-  const n = parseInt(localStorage.getItem(todayKey()) || "0", 10);
-  countEl.textContent = "오늘 오리한테 " + n + "번 상담함";
-})();
 
 function faviconFor(url){
   try{ return "https://www.google.com/s2/favicons?sz=64&domain=" + new URL(url).hostname; }
@@ -824,33 +1253,95 @@ function positionThought(){
   }
 }
 
+// in-memory only: threads --resume within one app run so a chat keeps context
+// across turns. Reset on provider/prompt change and on 새 대화 — deliberately NOT
+// persisted across restart (resuming a stale CLI session between launches is
+// unreliable; the visible transcript is what survives instead).
 let sessionId = null;
 let asking = false;
 
+// the full chat transcript. Reopening the bubble no longer wipes it (that reset
+// was the root cause of "대화내역이 날아간다" + felt-broken multi-turn), and it's
+// persisted to localStorage so past conversations stay reviewable after a restart.
+let convo = [];
+try {
+  const saved = JSON.parse(localStorage.getItem("duckConvo") || "[]");
+  if (Array.isArray(saved)) convo = saved;
+} catch (e) { convo = []; }
+
+function saveConvo(){
+  // don't persist the transient "…thinking" placeholder
+  try { localStorage.setItem("duckConvo", JSON.stringify(convo.filter((m) => !m.pending).slice(-40))); } catch (e) {}
+}
+
+// the bubble shows only the latest line (the original, playful single-message
+// form). The full back-and-forth is reviewable in the settings "대화내역" tab.
+function latestDuckText(){
+  for (let i = convo.length - 1; i >= 0; i--){ if (convo[i].role === "duck" && !convo[i].pending) return convo[i].text; }
+  return "막힌 걸 말해봐.";
+}
+
+// renders the whole transcript into the 대화내역 tab (never the bubble)
+function renderHistory(){
+  if (!historyLog) return;
+  historyLog.innerHTML = "";
+  for (const m of convo){
+    if (m.pending) continue;
+    const el = document.createElement("div");
+    el.className = "msg " + (m.role === "user" ? "user" : "duck");
+    el.textContent = m.text;   // textContent, never innerHTML — LLM/user text stays inert
+    historyLog.appendChild(el);
+  }
+  historyLog.scrollTop = historyLog.scrollHeight;
+}
+
 function openChat(){
-  const wasOpen = chatBubble.classList.contains("open");
+  msgArea.textContent = latestDuckText();   // single latest line — original bubble form
   positionBubble();
   chatBubble.classList.add("open");
-  if (!wasOpen){
-    sessionId = null;
-    msgArea.textContent = "막힌 걸 말해봐.";
-    setThoughtOpen(false);
-    problem.value = "";
-    bumpCount();
-  }
+  scheduleAutoClose();   // start the idle auto-close countdown
   setTimeout(() => problem.focus(), 180);
 }
 function closeChat(){
+  clearTimeout(autoCloseTimer); autoCloseTimer = null;
   chatBubble.classList.remove("open");
   setThoughtOpen(false);
   problem.blur();
 }
+
+// The chat no longer closes when you click elsewhere — instead it closes on its
+// own once you stop interacting with it for `autoCloseSec` seconds (0 = never).
+// Every interaction (typing, hovering/scrolling the bubble, a reply landing)
+// restarts the countdown, so it never closes mid-read or mid-type. Tunable in settings.
+let autoCloseSec = clampAutoClose(parseInt(localStorage.getItem("duckAutoCloseSec"), 10));
+let autoCloseTimer = null;
+function scheduleAutoClose(){
+  clearTimeout(autoCloseTimer); autoCloseTimer = null;
+  if (asking) return;                                   // never close while awaiting a reply
+  if (!chatBubble.classList.contains("open")) return;
+  if (!autoCloseSec || autoCloseSec <= 0) return;       // 0 / off = stay open indefinitely
+  autoCloseTimer = setTimeout(closeChat, autoCloseSec * 1000);
+}
+// "대화 기록 초기화" (in the 대화내역 tab): wipe transcript + both context threads
+function resetHistory(){
+  if (asking) return;   // let any in-flight reply land first
+  convo = [];
+  sessionId = null;     // CLI session thread
+  apiHistory = [];      // HTTP API replayed context
+  saveConvo();
+  renderHistory();
+  msgArea.textContent = "막힌 걸 말해봐.";   // reset the bubble line too
+  setThoughtOpen(false);
+}
 closeBtn.addEventListener("click", closeChat);
 window.addEventListener("keydown", (e) => { if (e.key === "Escape" && chatBubble.classList.contains("open")) closeChat(); });
-window.addEventListener("pointerdown", (e) => {
-  if (!chatBubble.classList.contains("open")) return;
-  if (e.target.closest("#chatBubble") || e.target.closest("#thoughtBubble") || e.target.closest("#duckHit")) return;
-  closeChat();
+
+// Clicking elsewhere no longer dismisses the chat (per request) — the idle timer
+// does. Interacting with the bubble or its link cloud restarts that countdown so
+// it stays open while you're reading or typing.
+["pointermove", "pointerdown", "keydown", "wheel"].forEach((ev) => {
+  chatBubble.addEventListener(ev, scheduleAutoClose);
+  thoughtBubble.addEventListener(ev, scheduleAutoClose);
 });
 
 let debounceT = null;
@@ -875,22 +1366,112 @@ const settingsOverlay = document.getElementById("settingsOverlay");
 const settingsPanel = document.getElementById("settingsPanel");
 const settingsCloseBtn = document.getElementById("settingsCloseBtn");
 const promptArea = document.getElementById("promptArea");
-const providerBtns = Array.from(document.querySelectorAll(".providerBtn[data-provider]"));
+const autoCloseRange = document.getElementById("autoCloseRange");
+const autoCloseVal = document.getElementById("autoCloseVal");
+function clampAutoClose(v){ return isNaN(v) ? 5 : Math.max(0, Math.min(30, v)); }
+function updateAutoCloseLabel(){
+  const v = clampAutoClose(parseInt(autoCloseRange.value, 10));
+  autoCloseVal.textContent = (v <= 0) ? "안 닫힘" : (v + "초");
+}
+autoCloseRange.addEventListener("input", updateAutoCloseLabel);
+const providerSelect = document.getElementById("providerSelect");
+const apiFields = document.getElementById("apiFields");
+const apiBaseUrl = document.getElementById("apiBaseUrl");
+const apiModel = document.getElementById("apiModel");
+const apiKeyInput = document.getElementById("apiKeyInput");
+const apiHint = document.getElementById("apiHint");
 const resetPromptBtn = document.getElementById("resetPromptBtn");
 const saveSettingsBtn = document.getElementById("saveSettingsBtn");
 const adminCodeInput = document.getElementById("adminCodeInput");
 const adminApplyBtn = document.getElementById("adminApplyBtn");
 const resetUnlockBtn = document.getElementById("resetUnlockBtn");
 const adminHint = document.getElementById("adminHint");
+const previewSvg = document.getElementById("previewSvg");
+const equipmentSlotsLeft = document.getElementById("equipmentSlotsLeft");
+const equipmentSlotsRight = document.getElementById("equipmentSlotsRight");
+const equipmentDetail = document.getElementById("equipmentDetail");
+const equipmentCount = document.getElementById("equipmentCount");
+const xpBadge = document.getElementById("xpBadge");
+const codePanel = document.getElementById("codePanel");
+const codeStatus = document.getElementById("codeStatus");
+const duckCodeArea = document.getElementById("duckCodeArea");
+const loadDuckCodeBtn = document.getElementById("loadDuckCodeBtn");
+const applyDuckCodeBtn = document.getElementById("applyDuckCodeBtn");
 
 let provider = localStorage.getItem("duckProvider") || "claude";
+// the base persona (DEFAULT_SYSTEM_PROMPT in main.js) is always applied
+// server-side and never shown here; customPrompt is purely the user's OWN
+// extra instructions layered on top, so this field starts empty by default
 let customPrompt = localStorage.getItem("duckSystemPrompt") || "";
-let defaultPrompt = "";
+let selectedTrackId = "body";
+duckCodeArea.value = duckCodeValue || JSON.stringify(SKIN_TEMPLATE, null, 2);
 
-function refreshProviderButtons(){
-  providerBtns.forEach((b) => b.classList.toggle("active", b.dataset.provider === provider));
+// non-secret provider config loaded from main (keys never come back here — only
+// `hasKey`), and the per-provider API conversation history (the HTTP APIs are
+// stateless, so context has to be replayed each turn)
+let savedProviderCfg = {};
+let apiHistory = [];
+
+// provider catalog — MUST stay in sync with PRESETS in main.js (same ids, base
+// URLs, default models). `cli` = local CLI (no key); `api` = HTTP endpoint.
+const PROVIDERS = [
+  { id: "claude",     label: "Claude Code (CLI)", kind: "cli" },
+  { id: "codex",      label: "Codex (CLI)",       kind: "cli" },
+  { id: "openai",     kind: "api", baseUrl: "https://api.openai.com/v1",                               model: "gpt-4o-mini",             needsKey: true },
+  { id: "anthropic",  kind: "api", baseUrl: "https://api.anthropic.com",                               model: "claude-haiku-4-5",        needsKey: true },
+  { id: "gemini",     kind: "api", baseUrl: "https://generativelanguage.googleapis.com/v1beta/openai", model: "gemini-2.0-flash",        needsKey: true },
+  { id: "openrouter", kind: "api", baseUrl: "https://openrouter.ai/api/v1",                            model: "openai/gpt-4o-mini",      needsKey: true },
+  { id: "groq",       kind: "api", baseUrl: "https://api.groq.com/openai/v1",                          model: "llama-3.3-70b-versatile", needsKey: true },
+  { id: "xai",        kind: "api", baseUrl: "https://api.x.ai/v1",                                     model: "grok-2-latest",           needsKey: true },
+  { id: "ollama",     kind: "api", baseUrl: "http://localhost:11434/v1",                               model: "llama3.2",                needsKey: false },
+  { id: "lmstudio",   kind: "api", baseUrl: "http://localhost:1234/v1",                                model: "local-model",             needsKey: false },
+  { id: "custom",     kind: "api", baseUrl: "",                                                        model: "",                        needsKey: false }
+];
+const PROVIDER_MAP = {};
+PROVIDERS.forEach((p) => { PROVIDER_MAP[p.id] = p; });
+
+function providerHint(id, saved){
+  if (id === "ollama")    return "로컬 Ollama가 켜져 있어야 해 (기본 주소 그대로면 OK).";
+  if (id === "lmstudio")  return "LM Studio 로컬 서버를 켜고 모델을 로드해둬.";
+  if (id === "custom")    return "OpenAI 호환 주소·모델을 넣어줘 (필요하면 키도). OpenRouter·Together·vLLM 등 대부분 됨.";
+  if (id === "anthropic") return "console.anthropic.com 에서 발급한 API 키.";
+  if (id === "openai")    return "platform.openai.com 에서 발급한 API 키.";
+  if (id === "gemini")    return "aistudio.google.com 에서 발급한 Gemini API 키.";
+  if (id === "openrouter")return "openrouter.ai 키. 모델은 'openai/gpt-4o-mini' 처럼 적어.";
+  if (id === "groq")      return "console.groq.com 에서 발급한 키.";
+  if (id === "xai")       return "x.ai 에서 발급한 키.";
+  return "";
 }
-providerBtns.forEach((b) => b.addEventListener("click", () => { provider = b.dataset.provider; refreshProviderButtons(); }));
+
+function refreshProviderUI(){
+  const p = PROVIDER_MAP[provider] || PROVIDER_MAP.claude;
+  providerSelect.value = provider;
+  if (p.kind !== "api"){ apiFields.style.display = "none"; return; }
+  apiFields.style.display = "flex";
+  const saved = savedProviderCfg[provider] || {};
+  apiBaseUrl.value = saved.baseUrl || p.baseUrl || "";
+  apiModel.value = saved.model || p.model || "";
+  const useKey = p.needsKey || provider === "custom";
+  apiKeyInput.style.display = useKey ? "block" : "none";
+  apiKeyInput.value = "";
+  apiKeyInput.placeholder = saved.hasKey ? "API 키 (저장됨 — 바꾸려면 입력)" : "API 키";
+  apiHint.textContent = providerHint(provider, saved);
+  // this machine has no OS keychain, so a saved key sits in cleartext — warn
+  if (saved.hasKey && saved.encrypted === false){
+    apiHint.textContent = "⚠️ 이 PC엔 OS 키 저장소가 없어 키가 평문으로 저장돼. " + apiHint.textContent;
+  }
+}
+providerSelect.addEventListener("change", () => { provider = providerSelect.value; refreshProviderUI(); });
+
+// load saved provider config from main once at startup (active provider + saved
+// base URL / model / hasKey per provider — never the key itself)
+window.duckAPI.getProviderConfig().then((c) => {
+  if (!c) return;
+  savedProviderCfg = c.saved || {};
+  if (c.active && PROVIDER_MAP[c.active]) provider = c.active;
+  localStorage.setItem("duckProvider", provider);
+  refreshProviderUI();
+}).catch(() => {});
 
 function setAdminHint(text, error){
   adminHint.textContent = text;
@@ -898,58 +1479,97 @@ function setAdminHint(text, error){
 }
 
 function unlockAllParts(){
-  PARTS.forEach((def) => {
+  wardrobeTracks.forEach((def) => {
     const st = partOf(def.id);
-    st.level = MAX_LEVEL;
-    st.shapeIdx = MAX_LEVEL;
-    st.colorIdx = MAX_LEVEL;
+    const max = trackMax(def);
+    st.level = max; st.shapeIdx = max; st.colorIdx = 0;
   });
-  savePartState();
-  PARTS.forEach((def) => rebuildPart(def.id));
-  refreshCustomizeUI();
+  saveWardrobeState();
+  rebuildDuck();
+  refreshWardrobeUI();
 }
 
 function resetUnlockProgress(){
   partState = {};
-  localStorage.removeItem("duckParts");
+  localStorage.removeItem("duckWardrobe");
   totalXP = 0;
   localStorage.removeItem("duckXP");
-  xpHud.textContent = "0 XP";
-  PARTS.forEach((def) => rebuildPart(def.id));
-  refreshCustomizeUI();
+  duckCodeValue = "";
+  localStorage.removeItem("duckCode");
+  redeemed = [];
+  localStorage.removeItem("duckRedeemed");   // one-time coupons become redeemable again
+  xpHud.textContent = "✨ 0 XP";
+  duckCodeArea.value = JSON.stringify(SKIN_TEMPLATE, null, 2);
+  rebuildDuck();
+  refreshWardrobeUI();
 }
 
-function applyAdminCode(){
+// ── Coupon system (mobile-game style, adapted to a server-less local app) ─────
+// Real games validate coupons on a SERVER: the code list and who-redeemed-what
+// live in a DB the client can neither read nor forge, and one-time-per-account +
+// expiry are enforced server-side. This app has no server, so we do the best a
+// local app can: codes are stored only as salted SHA-256 hashes (no plaintext in
+// this source, which ships to git), each redemption is tracked in localStorage,
+// and one-time-vs-permanent + expiry are honored. Gap that needs a backend to
+// truly close: a determined user could read the hash and brute-force a short
+// code, or wipe localStorage to re-redeem a one-time code. Acceptable here —
+// rewards are cosmetic (XP / skins), not money.
+//
+// To MINT a code, hash it (input is lowercased first), then add a row to COUPONS:
+//   node -e "const c=require('crypto');console.log(c.createHash('sha256').update('malang-duck-v1:'+process.argv[1].toLowerCase()).digest('hex'))" YOURCODE
+const COUPON_SALT = "malang-duck-v1";
+// reusable:true = permanent (owner code, unlimited uses); false = one-time per install.
+// reward: "unlock_all" | { xp: <number> }.  expires: "YYYY-MM-DD" or null (never).
+const COUPONS = [
+  { hash: "0adbf62aa25b57aba37ea687e40a818482deeabc4f7d3dad1575265f36ea20a2", reusable: true, reward: "unlock_all", expires: null },
+  // 예시 이벤트 코드 (위 명령으로 해시 만들어 추가): 1회용 + XP 지급 + 만료일
+  // { hash: "<sha256>", reusable: false, reward: { xp: 500 }, expires: "2026-12-31" },
+];
+
+// which one-time coupons this install already redeemed (permanent codes never recorded)
+let redeemed = [];
+try { const r = JSON.parse(localStorage.getItem("duckRedeemed") || "[]"); if (Array.isArray(r)) redeemed = r; } catch (e) { redeemed = []; }
+function markRedeemed(hash){ if (!redeemed.includes(hash)){ redeemed.push(hash); try { localStorage.setItem("duckRedeemed", JSON.stringify(redeemed)); } catch (e) {} } }
+
+async function couponHash(code){
+  const data = new TextEncoder().encode(COUPON_SALT + ":" + code);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+function grantCouponReward(reward){
+  if (reward === "unlock_all"){ unlockAllParts(); return "전부 해금 🎉"; }
+  if (reward && typeof reward.xp === "number"){ addXP(reward.xp); return "+" + reward.xp + " XP 🎁"; }
+  return "적용 완료";
+}
+// silent=true (fired while typing) applies a valid code but stays quiet on failure,
+// so the hint doesn't flash "wrong code" on every keystroke; explicit apply/Enter
+// (silent=false) reports exactly why a code didn't take (invalid / expired / used).
+async function applyAdminCode(silent){
   const code = adminCodeInput.value.trim().toLowerCase();
-  if (code === "thanks"){
-    unlockAllParts();
-    adminCodeInput.value = "";
-    setAdminHint("전체 해금 완료.", false);
-  } else {
-    setAdminHint("코드가 틀렸습니다. thanks를 입력하세요.", true);
-  }
+  if (!code) return;
+  const hash = await couponHash(code);
+  const coupon = COUPONS.find((c) => c.hash === hash);
+  if (!coupon){ if (!silent) setAdminHint("쿠폰 코드가 올바르지 않아요.", true); return; }
+  if (coupon.expires && new Date() > new Date(coupon.expires + "T23:59:59")){ if (!silent) setAdminHint("만료된 쿠폰이에요.", true); return; }
+  if (!coupon.reusable && redeemed.includes(coupon.hash)){ if (!silent) setAdminHint("이미 사용한 쿠폰이에요.", true); return; }
+  const msg = grantCouponReward(coupon.reward);
+  if (!coupon.reusable) markRedeemed(coupon.hash);
+  adminCodeInput.value = "";
+  setAdminHint("쿠폰 적용 완료! " + msg, false);
 }
 
-adminApplyBtn.addEventListener("click", applyAdminCode);
+adminApplyBtn.addEventListener("click", () => applyAdminCode(false));
 adminCodeInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter"){
-    e.preventDefault();
-    applyAdminCode();
-  }
+  if (e.key === "Enter"){ e.preventDefault(); applyAdminCode(false); }
 });
-adminCodeInput.addEventListener("input", () => {
-  if (adminCodeInput.value.trim().toLowerCase() === "thanks") applyAdminCode();
-});
+adminCodeInput.addEventListener("input", () => applyAdminCode(true));
 resetUnlockBtn.addEventListener("click", () => {
   resetUnlockProgress();
   adminCodeInput.value = "";
   setAdminHint("해금 상태를 초기화했습니다.", false);
 });
 
-resetPromptBtn.addEventListener("click", async () => {
-  if (!defaultPrompt) defaultPrompt = await window.duckAPI.getDefaultPrompt();
-  promptArea.value = defaultPrompt;
-});
+resetPromptBtn.addEventListener("click", () => { promptArea.value = ""; });
 
 let displaysCache = null;
 async function displayUnderDuck(){
@@ -961,11 +1581,12 @@ async function displayUnderDuck(){
 }
 
 async function openSettings(){
-  if (!defaultPrompt) defaultPrompt = await window.duckAPI.getDefaultPrompt();
-  promptArea.value = customPrompt || defaultPrompt;
+  promptArea.value = customPrompt;
+  autoCloseRange.value = String(autoCloseSec);
+  updateAutoCloseLabel();
   adminCodeInput.value = "";
-  setAdminHint("thanks를 입력하면 바로 전부 해금됩니다.", false);
-  refreshProviderButtons();
+  setAdminHint("쿠폰 코드를 입력해봐.", false);
+  refreshProviderUI();
   if (xpBadge) xpBadge.textContent = totalXP + " XP";
   const d = await displayUnderDuck();
   settingsPanel.style.left = (d.x + d.width / 2) + "px";
@@ -974,12 +1595,27 @@ async function openSettings(){
 }
 function closeSettings(){ settingsOverlay.classList.remove("open"); }
 
-saveSettingsBtn.addEventListener("click", () => {
+saveSettingsBtn.addEventListener("click", async () => {
   localStorage.setItem("duckProvider", provider);
-  const typed = promptArea.value.trim();
-  customPrompt = (typed && typed !== defaultPrompt) ? typed : "";
+  customPrompt = promptArea.value.trim();
   localStorage.setItem("duckSystemPrompt", customPrompt);
-  sessionId = null; // provider/prompt changed — start the next chat fresh
+  autoCloseSec = clampAutoClose(parseInt(autoCloseRange.value, 10));
+  localStorage.setItem("duckAutoCloseSec", String(autoCloseSec));
+  scheduleAutoClose();   // apply the new timing to an already-open chat right away
+  const p = PROVIDER_MAP[provider] || PROVIDER_MAP.claude;
+  if (p.kind === "api"){
+    const payload = { id: provider, baseUrl: apiBaseUrl.value.trim(), model: apiModel.value.trim() };
+    if (apiKeyInput.value) payload.apiKey = apiKeyInput.value; // omit when blank -> keep the stored key
+    try {
+      const res = await window.duckAPI.saveProviderConfig(payload);
+      savedProviderCfg[provider] = { baseUrl: payload.baseUrl, model: payload.model, hasKey: !!(res && res.hasKey), encrypted: !!(res && res.encrypted) };
+    } catch (e) { /* main returns {ok:false} on bad input; ignore */ }
+    apiKeyInput.value = "";
+  } else {
+    try { await window.duckAPI.saveProviderConfig({ id: provider }); } catch (e) {}
+  }
+  sessionId = null;   // CLI provider/prompt changed — reset resumable session
+  apiHistory = [];    // API provider/prompt changed — reset replayed context
   closeSettings();
 });
 settingsCloseBtn.addEventListener("click", closeSettings);
@@ -988,84 +1624,132 @@ window.addEventListener("keydown", (e) => { if (e.key === "Escape" && settingsOv
 
 // tabs
 const tabBtns = Array.from(document.querySelectorAll(".tabBtn"));
-const tabPanes = { settings: document.getElementById("tabSettings"), customize: document.getElementById("tabCustomize") };
+const tabPanes = { settings: document.getElementById("tabSettings"), history: document.getElementById("tabHistory"), customize: document.getElementById("tabCustomize") };
+const historyLog = document.getElementById("historyLog");
+const resetHistoryBtn = document.getElementById("resetHistoryBtn");
+resetHistoryBtn.addEventListener("click", resetHistory);
 tabBtns.forEach((b) => b.addEventListener("click", () => {
   tabBtns.forEach((x) => x.classList.toggle("active", x === b));
   Object.keys(tabPanes).forEach((k) => { tabPanes[k].style.display = (k === b.dataset.tab) ? "flex" : "none"; });
-  if (b.dataset.tab === "customize") refreshCustomizeUI();
+  settingsPanel.classList.toggle("customizeMode", b.dataset.tab === "customize");
+  if (b.dataset.tab === "customize") refreshWardrobeUI();
+  if (b.dataset.tab === "history") renderHistory();
 }));
 
-// customize tab: spend shared XP to unlock more shape/color options per part
-const partListEl = document.getElementById("partList");
-const xpBadge = document.getElementById("xpBadge");
-
-function hexCss(n){ return "#" + n.toString(16).padStart(6, "0"); }
-
-function refreshCustomizeUI(){
+function refreshWardrobeUI(){
   xpBadge.textContent = totalXP + " XP";
-  partListEl.innerHTML = "";
-  PARTS.forEach((def) => {
+  renderDuck(previewSvg, buildDuckStyle(), false);
+
+  equipmentSlotsLeft.innerHTML = "";
+  equipmentSlotsRight.innerHTML = "";
+  const completed = wardrobeTracks.filter((def) => trackLevel(def, partOf(def.id)) >= trackMax(def)).length;
+  equipmentCount.textContent = completed + "/" + wardrobeTracks.length + " 완료";
+
+  const splitAt = Math.ceil(wardrobeTracks.length / 2);
+  wardrobeTracks.forEach((def, i) => {
     const st = partOf(def.id);
-    const row = document.createElement("div");
-    row.className = "partRow";
+    const max = trackMax(def);
+    st.level = clamp(Number(st.level) || 0, 0, max);
+    st.shapeIdx = clamp(Number(st.shapeIdx) || 0, 0, st.level);
+    st.colorIdx = clamp(Number(st.colorIdx) || 0, 0, st.level);
 
-    const head = document.createElement("div");
-    head.className = "partRowHead";
-    head.innerHTML = "<span class=\"pName\">" + def.label + "</span><span class=\"pLvl\">Lv." + st.level + "/" + MAX_LEVEL + "</span>";
-    row.appendChild(head);
-
-    const shapeRow = document.createElement("div");
-    shapeRow.className = "swatchRow";
-    for (let i = 0; i <= st.level; i++){
-      const sw = document.createElement("button");
-      sw.className = "shapeSwatch" + (i === st.shapeIdx ? " selected" : "");
-      sw.title = SHAPES[i].label;
-      sw.textContent = SHAPES[i].id === "sphere" ? "●" : SHAPES[i].id === "box" ? "■" : SHAPES[i].id === "cone" ? "▲" : SHAPES[i].id === "cylinder" ? "⬤" : SHAPES[i].id === "octahedron" ? "◆" : SHAPES[i].id === "torus" ? "◯" : "▮";
-      sw.addEventListener("click", () => { st.shapeIdx = i; savePartState(); rebuildPart(def.id); refreshCustomizeUI(); });
-      shapeRow.appendChild(sw);
-    }
-    row.appendChild(shapeRow);
-
-    const colorRow = document.createElement("div");
-    colorRow.className = "swatchRow";
-    for (let i = 0; i <= st.level; i++){
-      const sw = document.createElement("button");
-      sw.className = "colorSwatch" + (i === st.colorIdx ? " selected" : "");
-      sw.style.background = hexCss(colorForChoice(def, i));
-      sw.addEventListener("click", () => { st.colorIdx = i; savePartState(); rebuildPart(def.id); refreshCustomizeUI(); });
-      colorRow.appendChild(sw);
-    }
-    row.appendChild(colorRow);
-
-    const btn = document.createElement("button");
-    if (st.level >= MAX_LEVEL){
-      btn.className = "unlockBtn maxed";
-      btn.textContent = "만렙";
-      btn.disabled = true;
-    } else {
-      const cost = costForLevel(st.level + 1);
-      btn.className = "unlockBtn";
-      btn.textContent = "다음 단계 해금 (" + cost + " XP)";
-      btn.disabled = totalXP < cost;
-      btn.addEventListener("click", () => {
-        if (totalXP < cost) return;
-        totalXP -= cost;
-        localStorage.setItem("duckXP", String(totalXP));
-        xpHud.textContent = "✨ " + totalXP + " XP";
-        st.level += 1;
-        st.shapeIdx = st.level;
-        st.colorIdx = st.level;
-        savePartState();
-        rebuildPart(def.id);
-        refreshCustomizeUI();
-        celebrateLevelUp(def.label);
-      });
-    }
-    row.appendChild(btn);
-
-    partListEl.appendChild(row);
+    const slotBtn = document.createElement("button");
+    slotBtn.className = "equipmentSlot" + (def.id === selectedTrackId ? " selected" : "");
+    const equipped = def.skins[st.shapeIdx] || def.skins[0];
+    slotBtn.title = def.label + " · " + equipped.label;
+    slotBtn.innerHTML = "<span class=\"slotIcon\">" + (equipped.icon || def.slotIcon || "■") + "</span><span class=\"slotName\">" + def.label + "</span><span class=\"slotLevel\">Lv." + st.level + "/" + max + "</span>";
+    slotBtn.addEventListener("click", () => { selectedTrackId = def.id; refreshWardrobeUI(); });
+    (i < splitAt ? equipmentSlotsLeft : equipmentSlotsRight).appendChild(slotBtn);
   });
+
+  const def = wardrobeTracks.find((t) => t.id === selectedTrackId) || wardrobeTracks[0];
+  const st = partOf(def.id);
+  const max = trackMax(def);
+  equipmentDetail.innerHTML = "<div id=\"equipmentDetailHead\"><strong>" + def.label + "</strong><span>Lv." + st.level + "/" + max + "</span></div><div class=\"equipmentSectionLabel\">스킨</div><div id=\"skinChoiceGrid\"></div><div class=\"equipmentSectionLabel\">색상</div><div id=\"equipmentColorRow\"></div>";
+
+  const skinGrid = equipmentDetail.querySelector("#skinChoiceGrid");
+  def.skins.forEach((sk, i) => {
+    const choice = document.createElement("button");
+    const locked = i > st.level;
+    choice.className = "skinChoice" + (i === st.shapeIdx ? " selected" : "") + (locked ? " locked" : "");
+    choice.innerHTML = "<span class=\"skinIcon\">" + (locked ? "?" : (sk.icon || "■")) + "</span><span>" + (locked ? "미해금" : sk.label) + "</span>";
+    choice.disabled = locked;
+    if (!locked) choice.addEventListener("click", () => { st.shapeIdx = i; saveWardrobeState(); rebuildDuck(); refreshWardrobeUI(); });
+    skinGrid.appendChild(choice);
+  });
+
+  const colorRow = equipmentDetail.querySelector("#equipmentColorRow");
+  for (let i = 0; i <= st.level; i++){
+    const sw = document.createElement("button");
+    sw.className = "colorSwatch" + (i === st.colorIdx ? " selected" : "");
+    sw.title = i === 0 ? "원래 색" : "해금 색상 " + i;
+    sw.style.background = hexCss(colorForChoice(def, i));
+    sw.addEventListener("click", () => { st.colorIdx = i; saveWardrobeState(); rebuildDuck(); refreshWardrobeUI(); });
+    colorRow.appendChild(sw);
+  }
+
+  const btn = document.createElement("button");
+  if (st.level >= max){
+    btn.className = "unlockBtn maxed";
+    btn.textContent = "이 부위 완료";
+    btn.disabled = true;
+  } else {
+    const cost = costForLevel(st.level + 1);
+    btn.className = "unlockBtn";
+    btn.textContent = "다음 스킨 해금 (" + cost + " XP)";
+    btn.disabled = totalXP < cost;
+    btn.addEventListener("click", () => {
+      if (totalXP < cost) return;
+      totalXP -= cost;
+      localStorage.setItem("duckXP", String(totalXP));
+      xpHud.textContent = "✨ " + totalXP + " XP";
+      st.level += 1;
+      st.shapeIdx = st.level;
+      saveWardrobeState();
+      rebuildDuck();
+      refreshWardrobeUI();
+      celebrateLevelUp(def.label);
+    });
+  }
+  equipmentDetail.appendChild(btn);
+
+  const unlocked = allTracksMaxed();
+  codePanel.style.display = unlocked ? "flex" : "none";
+  codePanel.classList.toggle("locked", !unlocked);
+  codeStatus.textContent = unlocked ? "최종 해금: JSON으로 오리 색상 팔레트를 조합할 수 있습니다." : "모든 스킨 트랙을 완료하면 열립니다.";
+  duckCodeArea.disabled = !unlocked;
+  applyDuckCodeBtn.disabled = !unlocked;
+  loadDuckCodeBtn.disabled = !unlocked;
+  if (unlocked && !duckCodeValue.trim()) duckCodeArea.value = JSON.stringify(SKIN_TEMPLATE, null, 2);
 }
+
+function saveDuckCode(text){
+  duckCodeValue = text.trim();
+  localStorage.setItem("duckCode", duckCodeValue);
+}
+
+function applyDuckCode(){
+  if (!allTracksMaxed()) return;
+  const text = duckCodeArea.value.trim();
+  if (!text){ saveDuckCode(""); rebuildDuck(); refreshWardrobeUI(); return; }
+  try{
+    JSON.parse(text);
+    saveDuckCode(text);
+    rebuildDuck();
+    refreshWardrobeUI();
+    codeStatus.textContent = "오리 코드를 적용했습니다.";
+  } catch (e){
+    codeStatus.textContent = "JSON 형식 오류: " + ((e && e.message) || e);
+  }
+}
+loadDuckCodeBtn.addEventListener("click", () => {
+  if (!allTracksMaxed()) return;
+  duckCodeArea.value = JSON.stringify(SKIN_TEMPLATE, null, 2);
+});
+applyDuckCodeBtn.addEventListener("click", applyDuckCode);
+duckCodeArea.addEventListener("input", () => {
+  if (allTracksMaxed()) codeStatus.textContent = "오리 코드를 편집 중입니다...";
+});
 
 duckHit.addEventListener("contextmenu", (e) => { e.preventDefault(); openSettings(); });
 
@@ -1074,32 +1758,64 @@ async function askDuck(){
   if (!text || asking) return;
   asking = true;
   problem.value = "";
-  msgArea.textContent = "음... 잠깐만.";
+  convo.push({ role: "user", text });
+  const pending = { role: "duck", text: "음... 잠깐만.", pending: true };
+  convo.push(pending);
+  msgArea.textContent = pending.text;   // bubble shows just "음... 잠깐만."
+  saveConvo();
   addXP(1);
-  try{
-    const result = await window.duckAPI.ask(text, sessionId, provider, customPrompt);
-    if (result && result.error){
-      msgArea.textContent = "지금은 대답을 못 들었어. (" + provider + " 로그인 상태인지 확인해봐)";
-    } else {
-      msgArea.textContent = result.note || "음, 조금 더 자세히 말해줄래?";
-      renderLinks(result.links || []);
-      sessionId = result.sessionId || sessionId;
-    }
-  } catch(e){
-    msgArea.textContent = "연결이 잠깐 끊겼나봐.";
-  } finally {
-    asking = false;
-    requestAnimationFrame(() => { if (chatBubble.classList.contains("open")) positionBubble(); });
+
+  const pkind = (PROVIDER_MAP[provider] || PROVIDER_MAP.claude).kind;
+  const askPayload = { provider, text, systemPrompt: customPrompt };
+  if (pkind === "cli") askPayload.sessionId = sessionId;   // local CLIs resume by id
+  else askPayload.history = apiHistory;                    // HTTP APIs replay the transcript
+
+  let result = null, threw = false;
+  try {
+    result = await window.duckAPI.ask(askPayload);
+  } catch (e) {
+    threw = true;
   }
+  asking = false;
+
+  // if 새 대화 wiped the transcript while the request was in flight, this reply
+  // is now orphaned — drop it rather than splicing into a fresh conversation.
+  const idx = convo.indexOf(pending);
+  if (idx === -1) return;
+  convo.splice(idx, 1);
+
+  if (threw) {
+    convo.push({ role: "duck", text: "연결이 잠깐 끊겼나봐." });
+  } else if (result && result.error) {
+    const tip = pkind === "cli" ? "로그인 상태인지 확인해봐" : "API 키·모델·연결 주소를 확인해봐";
+    convo.push({ role: "duck", text: "지금은 대답을 못 들었어. (" + tip + ")" });
+  } else {
+    const note = (result && result.note) || "음, 조금 더 자세히 말해줄래?";
+    convo.push({ role: "duck", text: note });
+    renderLinks((result && result.links) || []);
+    if (pkind === "cli") {
+      sessionId = (result && result.sessionId) || sessionId;   // thread the CLI session
+    } else {
+      // keep the API transcript so the next turn has context (bounded)
+      apiHistory.push({ role: "user", content: text }, { role: "assistant", content: note });
+      if (apiHistory.length > 40) apiHistory = apiHistory.slice(-40);
+    }
+  }
+  msgArea.textContent = latestDuckText();   // show the reply as the single bubble line
+  saveConvo();
+  renderHistory();       // keep the 대화내역 tab fresh if it's open
+  scheduleAutoClose();   // reply landed — restart the idle auto-close countdown
+  requestAnimationFrame(() => { if (chatBubble.classList.contains("open")) positionBubble(); });
 }
 problem.addEventListener("keydown", (e) => {
-  if (e.key === "Enter"){
-    e.preventDefault();
-    askDuck();
-  }
+  if (e.key === "Enter"){ e.preventDefault(); askDuck(); }
 });
 
 document.getElementById("quitBtn").addEventListener("click", () => window.duckAPI.quit());
+
+// everything above is now declared — safe to draw the duck and start the loop
+rebuildDuck();
+requestAnimationFrame(physicsFrame);
 </script>
 </body>
 </html>
