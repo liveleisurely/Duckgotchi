@@ -1,14 +1,11 @@
 {
   "name": "duck-widget",
-  "version": "1.0.0",
-  "description": "말랑오리 — 데스크탑 위젯 오리 (드래그, 방울, 고무오리 디버깅)",
+  "version": "1.1.0",
+  "description": "덕고치 (Duckgotchi) — 다마고치처럼 옆에 두고 키우는 데스크탑 오리 + 고무오리 디버깅",
   "main": "main.js",
   "private": true,
   "scripts": {
     "start": "electron ."
-  },
-  "dependencies": {
-    "three": "^0.169.0"
   },
   "devDependencies": {
     "electron": "^33.0.0"
