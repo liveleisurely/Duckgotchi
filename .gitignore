@@ -2,6 +2,13 @@ node_modules/
 .omc/
 *.log
 
-# unused leftover from an abandoned approach (see CLAUDE.md "Known inert
-# leftovers" / CHANGELOG §9) — not referenced by any current code
-assets/duck/
+# unused leftovers from abandoned 3D approaches (see CHANGELOG §9, §13) —
+# not referenced by any current code (2D SVG rewrite)
+assets/
+
+# AI 어시스턴트용 로컬 지침 파일 — 배포되는 앱의 일부가 아님
+CLAUDE.md
+AGENTS.md
+
+# 운영자 전용 — 쿠폰 발급·비밀 등 (레포엔 해시만 올라감)
+for_운영자.md
